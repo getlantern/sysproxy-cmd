@@ -7,7 +7,7 @@ ifeq ($(OS),Windows_NT)
 	os = windows
 	CCFLAGS += -D WIN32 -D IA32
 	LDFLAGS += -l rasapi32 -l wininet -Wl,--subsystem,windows
-	BIN = binaries/windows/pac
+	BIN = binaries/windows/sysproxy
 else
 	UNAME_S := $(shell uname -s)
 	ifeq ($(UNAME_S),Linux)
@@ -17,22 +17,22 @@ else
 		UNAME_P := $(shell uname -p)
 		ifeq ($(UNAME_P),x86_64)
 			CCFLAGS += -D AMD64
-			BIN = binaries/linux_amd64/pac
+			BIN = binaries/linux_amd64/sysproxy
 		endif
 		ifneq ($(filter %86,$(UNAME_P)),)
 			CCFLAGS += -D IA32
-			BIN = binaries/linux_386/pac
+			BIN = binaries/linux_386/sysproxy
 		endif
 		ifneq ($(filter arm%,$(UNAME_P)),)
 			CCFLAGS += -D ARM
-			BIN = binaries/linux_arm/pac
+			BIN = binaries/linux_arm/sysproxy
 		endif
 	endif
 	ifeq ($(UNAME_S),Darwin)
 		os = darwin
 		CCFLAGS += -D DARWIN -D AMD64 -x objective-c
 		LDFLAGS += -framework Cocoa -framework SystemConfiguration -framework Security
-		BIN = binaries/darwin/pac
+		BIN = binaries/darwin/sysproxy
 	endif
 endif
 
