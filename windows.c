@@ -77,7 +77,7 @@ LPTSTR FindActiveConnection() {
   return NULL; // Couldn't find an active dial-up/VPN connection; return NULL
 }
 
-int togglePac(bool turnOn, const char* pacUrl)
+int toggleProxy(bool turnOn, const char* proxyHost, const char* proxyPort)
 {
   int ret = RET_NO_ERROR;
 
@@ -94,23 +94,26 @@ int togglePac(bool turnOn, const char* pacUrl)
   }
 
   options.pOptions[0].dwOption = INTERNET_PER_CONN_FLAGS;
-  options.pOptions[1].dwOption = INTERNET_PER_CONN_AUTOCONFIG_URL;
+  options.pOptions[1].dwOption = INTERNET_PER_CONN_PROXY_SERVER;
+  char buf[256];
+  snprintf(buf, sizeof(buf), "%s:%s", proxyHost, proxyPort);
+  char* proxy = &buf[0];
   if (turnOn) {
-    options.pOptions[0].Value.dwValue = PROXY_TYPE_AUTO_PROXY_URL;
-    options.pOptions[1].Value.pszValue = (char*)pacUrl;
+    options.pOptions[0].Value.dwValue = PROXY_TYPE_PROXY;
+    options.pOptions[1].Value.pszValue = proxy;
   }
   else {
-    if (strlen(pacUrl) == 0) {
+    if (strlen(proxyHost) == 0) {
       goto turnOff;
-    } 
+    }
     if(!InternetQueryOption(NULL, INTERNET_OPTION_PER_CONNECTION_OPTION, &options, &dwBufferSize)) {
       reportWindowsError("Querying options");
       goto cleanup;
     }
-    // we turn pac off only if the option is set and pac url equals what provided
-    if ((options.pOptions[0].Value.dwValue & PROXY_TYPE_AUTO_PROXY_URL) != PROXY_TYPE_AUTO_PROXY_URL
+    // we turn proxy off only if the option is set and proxy address equals what provided
+    if ((options.pOptions[0].Value.dwValue & PROXY_TYPE_PROXY) != PROXY_TYPE_PROXY
       || options.pOptions[1].Value.pszValue == NULL
-      || strcmp(pacUrl, options.pOptions[1].Value.pszValue) != 0) {
+      || strcmp(proxy, options.pOptions[1].Value.pszValue) != 0) {
       goto cleanup;
     }
     // fall through
