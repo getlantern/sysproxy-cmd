@@ -89,7 +89,7 @@ int initialize(INTERNET_PER_CONN_OPTION_LIST* options) {
     return NO_MEMORY;
   }
   options->pOptions[0].dwOption = INTERNET_PER_CONN_FLAGS;
-  options->pOptions[1].dwOption = INTERNET_PER_CONN_AUTOCONFIG_URL;
+  options->pOptions[1].dwOption = INTERNET_PER_CONN_PROXY_SERVER;
   return RET_NO_ERROR;
 }
 
@@ -113,7 +113,7 @@ int show()
   if (ret != RET_NO_ERROR) {
     return ret;
   }
-  if ((options.pOptions[0].Value.dwValue & PROXY_TYPE_AUTO_PROXY_URL) > 0) {
+  if ((options.pOptions[0].Value.dwValue & PROXY_TYPE_PROXY) > 0) {
     if (options.pOptions[1].Value.pszValue != NULL) {
       printf("%s\n", options.pOptions[1].Value.pszValue);
     }
@@ -121,30 +121,35 @@ int show()
   return ret;
 }
 
-int togglePac(bool turnOn, const char* pacUrl)
+int toggleProxy(bool turnOn, const char* proxyHost, const char* proxyPort)
 {
   INTERNET_PER_CONN_OPTION_LIST options;
   int ret = initialize(&options);
   if (ret != RET_NO_ERROR) {
     return ret;
   }
+
+  char buf[256];
+  snprintf(buf, sizeof(buf), "%s:%s", proxyHost, proxyPort);
+  char* proxy = &buf[0];
+
   if (turnOn) {
-    options.pOptions[0].Value.dwValue = PROXY_TYPE_AUTO_PROXY_URL;
-    options.pOptions[1].Value.pszValue = (char*)pacUrl;
+    options.pOptions[0].Value.dwValue = PROXY_TYPE_PROXY;
+    options.pOptions[1].Value.pszValue = proxy;
   }
   else {
-    if (strlen(pacUrl) == 0) {
+    if (strlen(proxyHost) == 0) {
       goto turnOff;
     }
     ret = query(&options);
     if (ret != RET_NO_ERROR) {
       goto cleanup;
     }
-    // we turn pac off only if the option is set and pac url has the provided
-    // prefix.
-    if ((options.pOptions[0].Value.dwValue & PROXY_TYPE_AUTO_PROXY_URL) == 0
+    // we turn proxy off only if the option is set and proxy address has the
+    // provided prefix.
+    if ((options.pOptions[0].Value.dwValue & PROXY_TYPE_PROXY) == 0
         || options.pOptions[1].Value.pszValue == NULL
-        || strncmp(pacUrl, options.pOptions[1].Value.pszValue, strlen(pacUrl)) != 0) {
+        || strncmp(proxy, options.pOptions[1].Value.pszValue, strlen(proxy)) != 0) {
       goto cleanup;
     }
     // fall through
