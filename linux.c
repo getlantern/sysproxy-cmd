@@ -1,48 +1,89 @@
 #include <gio/gio.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "common.h"
 
-int togglePac(bool turnOn, const char* pacUrl)
+int toggleProxy(bool turnOn, const char* proxyHost, const char* proxyPort)
 {
   int ret = RET_NO_ERROR;
+
+  long port = strtol(proxyPort, NULL, 10);
+  if (port == 0) {
+    fprintf(stderr, "unable to parse port '%s'\n", proxyPort);
+    return INVALID_FORMAT;
+  }
 
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
   // deprecated since version 2.36, must leave here or prior glib will crash
   g_type_init();
 #pragma GCC diagnostic warning "-Wdeprecated-declarations"
   GSettings* setting = g_settings_new("org.gnome.system.proxy");
+#pragma GCC diagnostic warning "-Wdeprecated-declarations"
+  GSettings* httpSetting = g_settings_new("org.gnome.system.proxy.http");
+#pragma GCC diagnostic warning "-Wdeprecated-declarations"
+  GSettings* httpsSetting = g_settings_new("org.gnome.system.proxy.https");
   if (turnOn == true) {
-    gboolean success = g_settings_set_string(setting, "mode", "auto");
+    gboolean success = g_settings_set_string(httpSetting, "host", proxyHost);
     if (!success) {
-      fprintf(stderr, "error setting mode to auto\n");
+      fprintf(stderr, "error setting http host to %s\n", proxyHost);
       ret = SYSCALL_FAILED;
       goto cleanup;
     }
-    success = g_settings_set_string(setting, "autoconfig-url", pacUrl);
+    success = g_settings_set_int(httpSetting, "port", port);
     if (!success) {
-      fprintf(stderr, "error setting autoconfig-url to %s\n", pacUrl);
+      fprintf(stderr, "error setting http port %s\n", proxyPort);
+      ret = SYSCALL_FAILED;
+      goto cleanup;
+    }
+    success = g_settings_set_string(httpsSetting, "host", proxyHost);
+    if (!success) {
+      fprintf(stderr, "error setting https host to %s\n", proxyHost);
+      ret = SYSCALL_FAILED;
+      goto cleanup;
+    }
+    success = g_settings_set_int(httpsSetting, "port", port);
+    if (!success) {
+      fprintf(stderr, "error setting https port %s\n", proxyPort);
+      ret = SYSCALL_FAILED;
+      goto cleanup;
+    }
+    success = g_settings_set_boolean(httpSetting, "enabled", TRUE);
+    if (!success) {
+      fprintf(stderr, "error enabling http %s\n", proxyPort);
+      ret = SYSCALL_FAILED;
+      goto cleanup;
+    }
+    success = g_settings_set_string(setting, "mode", "manual");
+    if (!success) {
+      fprintf(stderr, "error setting mode to manual\n");
       ret = SYSCALL_FAILED;
       goto cleanup;
     }
   }
   else {
-    if (strlen(pacUrl) != 0) {
-      // clear pac setting only if it's equal to pacUrl
-      char* old_mode = g_settings_get_string(setting, "mode");
-      char* old_pac_url = g_settings_get_string(setting, "autoconfig-url");
-      if (strcmp(old_mode, "auto") != 0 || strcmp(old_pac_url, pacUrl) != 0 ) {
-	      fprintf(stderr, "current pac url setting is not %s, skipping\n", pacUrl);
+    if (strlen(proxyHost) != 0) {
+      // clear proxy setting only if it's equal to the original setting
+      char* oldMode = g_settings_get_string(setting, "mode");
+      char* oldHTTPHost = g_settings_get_string(httpSetting, "host");
+      long oldHTTPPort = g_settings_get_int(httpSetting, "port");
+      char* oldHTTPSHost = g_settings_get_string(httpsSetting, "host");
+      long oldHTTPSPort = g_settings_get_int(httpsSetting, "port");
+      if (strcmp(oldMode, "manual") != 0 ||
+          strcmp(oldHTTPHost, proxyHost) != 0 ||
+          oldHTTPPort != port ||
+          strcmp(oldHTTPSHost, proxyHost) != 0 ||
+          oldHTTPSPort != port) {
+	      fprintf(stderr, "current http or https setting is not %s:%s, skipping\n", proxyHost, proxyPort);
 	      goto cleanup;
       }
     }
-    g_settings_reset(setting, "autoconfig-url");
-    gboolean success = g_settings_set_string(setting, "mode", "none");
-    if (!success) {
-	    fprintf(stderr, "error setting mode to none\n");
-	    ret = SYSCALL_FAILED;
-	    goto cleanup;
-    }
+    g_settings_reset(httpSetting, "host");
+    g_settings_reset(httpSetting, "port");
+    g_settings_reset(httpsSetting, "host");
+    g_settings_reset(httpsSetting, "port");
+    g_settings_reset(httpSetting, "enabled");
+    g_settings_reset(setting, "mode");
 }
 cleanup:
 g_settings_sync();
