@@ -25,7 +25,7 @@ void reportWindowsError(const char* action) {
 // Figure out which Dial-Up or VPN connection is active; in a normal LAN connection, this should
 // return NULL. NOTE: For some reason this method fails when compiled in Debug mode but works
 // every time in Release mode.
-LPTSTR FindActiveConnection() {
+LPTSTR findActiveConnection() {
   DWORD dwCb = sizeof(RASCONN);
   DWORD dwErr = ERROR_SUCCESS;
   DWORD dwRetries = 5;
@@ -77,24 +77,57 @@ LPTSTR FindActiveConnection() {
   return NULL; // Couldn't find an active dial-up/VPN connection; return NULL
 }
 
-int togglePac(bool turnOn, const char* pacUrl)
-{
-  int ret = RET_NO_ERROR;
+int initialize(INTERNET_PER_CONN_OPTION_LIST* options) {
+  DWORD dwBufferSize = sizeof(INTERNET_PER_CONN_OPTION_LIST);
+  options->dwSize = dwBufferSize;
+  options->pszConnection = findActiveConnection();
 
-  INTERNET_PER_CONN_OPTION_LIST options;
-  DWORD   dwBufferSize = sizeof(options);
-  options.dwSize = dwBufferSize;
-  options.pszConnection = FindActiveConnection();
-
-  options.dwOptionCount = 2;
-  options.dwOptionError = 0;
-  options.pOptions = (INTERNET_PER_CONN_OPTION*)calloc(2, sizeof(INTERNET_PER_CONN_OPTION));
-  if(!options.pOptions) {
+  options->dwOptionCount = 2;
+  options->dwOptionError = 0;
+  options->pOptions = (INTERNET_PER_CONN_OPTION*)calloc(2, sizeof(INTERNET_PER_CONN_OPTION));
+  if(!options->pOptions) {
     return NO_MEMORY;
   }
+  options->pOptions[0].dwOption = INTERNET_PER_CONN_FLAGS;
+  options->pOptions[1].dwOption = INTERNET_PER_CONN_AUTOCONFIG_URL;
+  return RET_NO_ERROR;
+}
 
-  options.pOptions[0].dwOption = INTERNET_PER_CONN_FLAGS;
-  options.pOptions[1].dwOption = INTERNET_PER_CONN_AUTOCONFIG_URL;
+int query(INTERNET_PER_CONN_OPTION_LIST* options) {
+  DWORD dwBufferSize = sizeof(INTERNET_PER_CONN_OPTION_LIST);
+  if(!InternetQueryOption(NULL, INTERNET_OPTION_PER_CONNECTION_OPTION, options, &dwBufferSize)) {
+    reportWindowsError("Querying options");
+    return SYSCALL_FAILED;
+  }
+  return RET_NO_ERROR;
+}
+
+int show()
+{
+  INTERNET_PER_CONN_OPTION_LIST options;
+  int ret = initialize(&options);
+  if (ret != RET_NO_ERROR) {
+    return ret;
+  }
+  ret = query(&options);
+  if (ret != RET_NO_ERROR) {
+    return ret;
+  }
+  if ((options.pOptions[0].Value.dwValue & PROXY_TYPE_AUTO_PROXY_URL) > 0) {
+    if (options.pOptions[1].Value.pszValue != NULL) {
+      printf("%s\n", options.pOptions[1].Value.pszValue);
+    }
+  }
+  return ret;
+}
+
+int togglePac(bool turnOn, const char* pacUrl)
+{
+  INTERNET_PER_CONN_OPTION_LIST options;
+  int ret = initialize(&options);
+  if (ret != RET_NO_ERROR) {
+    return ret;
+  }
   if (turnOn) {
     options.pOptions[0].Value.dwValue = PROXY_TYPE_AUTO_PROXY_URL;
     options.pOptions[1].Value.pszValue = (char*)pacUrl;
@@ -102,15 +135,16 @@ int togglePac(bool turnOn, const char* pacUrl)
   else {
     if (strlen(pacUrl) == 0) {
       goto turnOff;
-    } 
-    if(!InternetQueryOption(NULL, INTERNET_OPTION_PER_CONNECTION_OPTION, &options, &dwBufferSize)) {
-      reportWindowsError("Querying options");
+    }
+    ret = query(&options);
+    if (ret != RET_NO_ERROR) {
       goto cleanup;
     }
-    // we turn pac off only if the option is set and pac url equals what provided
-    if ((options.pOptions[0].Value.dwValue & PROXY_TYPE_AUTO_PROXY_URL) != PROXY_TYPE_AUTO_PROXY_URL
-      || options.pOptions[1].Value.pszValue == NULL
-      || strcmp(pacUrl, options.pOptions[1].Value.pszValue) != 0) {
+    // we turn pac off only if the option is set and pac url has the provided
+    // prefix.
+    if ((options.pOptions[0].Value.dwValue & PROXY_TYPE_AUTO_PROXY_URL) == 0
+        || options.pOptions[1].Value.pszValue == NULL
+        || strncmp(pacUrl, options.pOptions[1].Value.pszValue, strlen(pacUrl)) != 0) {
       goto cleanup;
     }
     // fall through
@@ -119,8 +153,11 @@ turnOff:
     options.pOptions[1].Value.pszValue = "";
   }
 
-  BOOL result;
-  result = InternetSetOption(NULL,INTERNET_OPTION_PER_CONNECTION_OPTION, &options, dwBufferSize);
+  DWORD dwBufferSize = sizeof(INTERNET_PER_CONN_OPTION_LIST);
+  BOOL result = InternetSetOption(NULL,
+      INTERNET_OPTION_PER_CONNECTION_OPTION,
+      &options,
+      dwBufferSize);
   if (!result) {
     reportWindowsError("setting options");
     ret = SYSCALL_FAILED;

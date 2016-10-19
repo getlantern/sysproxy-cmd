@@ -5,7 +5,7 @@
 
 void usage(const char* binName)
 {
-  printf("Usage: %s [on  <pac url> | off [old pac url]]\n", binName);
+  printf("Usage: %s [show | on  <pac url> | off [prefix-of-old-pac-url]]\n", binName);
   exit(INVALID_FORMAT);
 }
 
@@ -20,7 +20,9 @@ int main(int argc, char* argv[]) {
   }
 #endif
 
-  if (strcmp(argv[1], "on") == 0) {
+  if (strcmp(argv[1], "show") == 0) {
+    return show();
+  } else if (strcmp(argv[1], "on") == 0) {
     if (argc < 3) {
       usage(argv[0]);
     }
@@ -30,6 +32,6 @@ int main(int argc, char* argv[]) {
   } else {
     usage(argv[0]);
   }
-  // code never reaches here, just stops compiler from complain
+  // code never reaches here, just avoids compiler from complaining.
   return RET_NO_ERROR;
 }

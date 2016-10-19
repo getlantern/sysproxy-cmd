@@ -6,6 +6,7 @@ int setUid();
 int elevate(char *path, char *prompt, char *iconPath);
 #endif
 
+int show();
 int togglePac(bool turnOn, const char* pacUrl);
 
 enum RET_ERRORS {
