@@ -10,35 +10,49 @@
 
 /* === implement details === */
 
-typedef Boolean (*visitor) (SCNetworkProtocolRef proxyProtocolRef, NSDictionary* oldPreferences, bool turnOn, const char* pacUrl);
+typedef Boolean (*visitor) (SCNetworkProtocolRef proxyProtocolRef, NSDictionary* oldPreferences, bool turnOn, const char* proxyHost, const char* proxyPort);
 
-Boolean showAction(SCNetworkProtocolRef proxyProtocolRef/*unused*/, NSDictionary* oldPreferences, bool turnOn/*unused*/, const char* pacUrl/*unused*/)
+Boolean showAction(SCNetworkProtocolRef proxyProtocolRef /*unused*/, NSDictionary* oldPreferences, bool turnOn /*unused*/, const char* proxyHost /*unused*/, const char* proxyPort /*unused*/)
 {
-  NSNumber* on = [oldPreferences valueForKey:(NSString*)kSCPropNetProxiesProxyAutoConfigEnable];
-  NSString* nsOldPacUrl = [oldPreferences valueForKey:(NSString*)kSCPropNetProxiesProxyAutoConfigURLString];
+  NSNumber* on = [oldPreferences valueForKey:(NSString*)kSCPropNetProxiesHTTPEnable];
+  NSString* nsOldProxyHost = [oldPreferences valueForKey:(NSString*)kSCPropNetProxiesHTTPProxy];
+  NSNumber* nsOldProxyPort = [oldPreferences valueForKey:(NSString*)kSCPropNetProxiesHTTPPort];
   if ([on intValue] == 1) {
-    printf("%s\n", [nsOldPacUrl UTF8String]);
+    printf("%s:%d\n", [nsOldProxyHost UTF8String], [nsOldProxyPort intValue]);
   }
   return TRUE;
 }
 
-Boolean toggleAction(SCNetworkProtocolRef proxyProtocolRef, NSDictionary* oldPreferences, bool turnOn, const char* pacUrl)
+Boolean toggleAction(SCNetworkProtocolRef proxyProtocolRef, NSDictionary* oldPreferences, bool turnOn, const char* proxyHost, const char* proxyPort)
 {
-  NSString* nsPacUrl = [[NSString alloc] initWithCString: pacUrl encoding:NSUTF8StringEncoding];
-  NSString* nsOldPacUrl;
+  NSString* nsProxyHost = [[NSString alloc] initWithCString: proxyHost encoding:NSUTF8StringEncoding];
+  NSNumber* nsProxyPort = [[NSNumber alloc] initWithLong: [[[NSString alloc] initWithCString: proxyPort encoding:NSUTF8StringEncoding] integerValue]];
+  NSString* nsOldProxyHost;
+  NSNumber* nsOldProxyPort;
   NSMutableDictionary *newPreferences = [NSMutableDictionary dictionaryWithDictionary: oldPreferences];
   Boolean success;
 
-  if(turnOn == true) {
-    [newPreferences setValue:[NSNumber numberWithInt:1] forKey:(NSString*)kSCPropNetProxiesProxyAutoConfigEnable];
-    [newPreferences setValue:nsPacUrl forKey:(NSString*)kSCPropNetProxiesProxyAutoConfigURLString];
+  if (turnOn == true) {
+    [newPreferences setValue: nsProxyHost forKey:(NSString*)kSCPropNetProxiesHTTPProxy];
+    [newPreferences setValue: nsProxyHost forKey:(NSString*)kSCPropNetProxiesHTTPSProxy];
+    [newPreferences setValue: nsProxyPort forKey:(NSString*)kSCPropNetProxiesHTTPPort];
+    [newPreferences setValue: nsProxyPort forKey:(NSString*)kSCPropNetProxiesHTTPSPort];
+    [newPreferences setValue:[NSNumber numberWithInt:1] forKey:(NSString*)kSCPropNetProxiesHTTPEnable];
+    [newPreferences setValue:[NSNumber numberWithInt:1] forKey:(NSString*)kSCPropNetProxiesHTTPSEnable];
   } else {
-    nsOldPacUrl = [oldPreferences valueForKey:(NSString*)kSCPropNetProxiesProxyAutoConfigURLString];
-    // we turn pac off only if the option is set and pac url has the provided
-    // prefix.
-    if (nsPacUrl.length == 0 || [nsOldPacUrl hasPrefix:nsPacUrl]) {
-      [newPreferences setValue:[NSNumber numberWithInt:0] forKey:(NSString*)kSCPropNetProxiesProxyAutoConfigEnable];
-      [newPreferences setValue:@"" forKey:(NSString*)kSCPropNetProxiesProxyAutoConfigURLString];
+    nsOldProxyHost = [newPreferences valueForKey:(NSString*)kSCPropNetProxiesHTTPProxy];
+    nsOldProxyPort = [newPreferences valueForKey:(NSString*)kSCPropNetProxiesHTTPPort];
+    if ([nsProxyHost isEqualToString:nsOldProxyHost] && [nsProxyPort intValue] == [nsOldProxyPort intValue]) {
+      [newPreferences setValue:[NSNumber numberWithInt:0] forKey:(NSString*)kSCPropNetProxiesHTTPEnable];
+      [newPreferences setValue: @"" forKey:(NSString*)kSCPropNetProxiesHTTPProxy];
+      [newPreferences setValue: @"" forKey:(NSString*)kSCPropNetProxiesHTTPPort];
+    }
+    nsOldProxyHost = [newPreferences valueForKey:(NSString*)kSCPropNetProxiesHTTPSProxy];
+    nsOldProxyPort = [newPreferences valueForKey:(NSString*)kSCPropNetProxiesHTTPSPort];
+    if ([nsProxyHost isEqualToString:nsOldProxyHost] && [nsProxyPort intValue] == [nsOldProxyPort intValue]) {
+      [newPreferences setValue:[NSNumber numberWithInt:0] forKey:(NSString*)kSCPropNetProxiesHTTPSEnable];
+      [newPreferences setValue: @"" forKey:(NSString*)kSCPropNetProxiesHTTPSProxy];
+      [newPreferences setValue: @"" forKey:(NSString*)kSCPropNetProxiesHTTPSPort];
     }
   }
 
@@ -49,7 +63,7 @@ Boolean toggleAction(SCNetworkProtocolRef proxyProtocolRef, NSDictionary* oldPre
   return success;
 }
 
-int visit(visitor v, bool persist, bool turnOn, const char* pacUrl)
+int visit(visitor v, bool persist, bool turnOn, const char* proxyHost, const char* proxyPort)
 {
   int ret = RET_NO_ERROR;
   Boolean success;
@@ -99,7 +113,7 @@ int visit(visitor v, bool persist, bool turnOn, const char* pacUrl)
     }
 
     oldPreferences = (__bridge NSDictionary*)SCNetworkProtocolGetConfiguration(proxyProtocolRef);
-    if (!v(proxyProtocolRef, oldPreferences, turnOn, pacUrl)) {
+    if (!v(proxyProtocolRef, oldPreferences, turnOn, proxyHost, proxyPort)) {
       ret = SYSCALL_FAILED;
     }
 
@@ -160,10 +174,10 @@ int setUid()
 
 int show()
 {
-  return visit(&showAction, false, false /*unused*/, "" /*unused*/);
+  return visit(&showAction, false, false /*unused*/, "" /*unused*/, "" /*unused*/);
 }
 
-int togglePac(bool turnOn, const char* pacUrl)
+int toggleProxy(bool turnOn, const char* proxyHost, const char* proxyPort)
 {
-  return visit(&toggleAction, true, turnOn, pacUrl);
+  return visit(&toggleAction, true, turnOn, proxyHost, proxyPort);
 }

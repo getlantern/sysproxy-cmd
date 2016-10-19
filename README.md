@@ -1,6 +1,6 @@
-# pac-cmd
+# sysproxy-cmd
 
-A command line tool to change proxy auto-config settings of operation system.
+A command line tool to change HTTP(s) proxy settings of the operating system.
 
 Binaries included in repo. Simply `make` to build it again.
 
@@ -9,32 +9,37 @@ Note - you will need to run make separately on each platform.
 # Usage
 
 ```sh
-pac show
-pac on  <pac-url>
-pac off [old-pac-url-prefix]
+sysproxy show
+sysproxy on  <proxy host> <proxy port>
+sysproxy off <proxy host> <proxy port>
 ```
 
-`pac off` with `old-pac-url` will turn off pac setting only if the existing pac url is prefixed with `old-pac-url-prefix`.
+`sysproxy off` will turn off proxy setting only if the existing host and port
+equal <proxy host> <proxy port>.
 
-#Notes
+# Notes
 
 *  **Mac**
-  
-Setting pac is an privileged action on Mac OS. `sudo` or elevate it as below.
+
+Setting the system proxy is a privileged action on Mac OS. `sudo` or elevate it
+as below.
 
 There's an additional option to chown itself to root:wheel and add setuid bit.
 
 ```sh
-pac setuid
+sysproxy setuid
 ```
 
 *  **Windows**
 
-Install [MinGW-W64](http://sourceforge.net/projects/mingw-w64) to build pac, as it has up to date SDK headers we require.
+Install [MinGW-W64](http://sourceforge.net/projects/mingw-w64) to build sysproxy
+as it has up to date SDK headers we require.
 
-To avoid bringing up console window, it doesn't show anything directly to console. Piping the result to other utilities should work.
+To avoid bringing up console window, it doesn't show anything directly to
+console. Piping the result to other utilities should work.
+
 ```
-pac show | cat
+sysproxy show | cat
 ```
 
 *  **Linux**

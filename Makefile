@@ -9,15 +9,15 @@ ifeq ($(OS),Windows_NT)
 	# 32 bit `make` utility over 64 bit OS
 	ifeq ($(PROCESSOR_ARCHITEW6432),AMD64)
 		CCFLAGS += -D AMD64
-		BIN = binaries/windows/pac_amd64
+		BIN = binaries/windows/sysproxy_amd64
 	else
 		ifeq ($(PROCESSOR_ARCHITECTURE),AMD64)
 			CCFLAGS += -D AMD64
-			BIN = binaries/windows/pac_amd64
+			BIN = binaries/windows/sysproxy_amd64
 		endif
 		ifeq ($(PROCESSOR_ARCHITECTURE),x86)
 			CCFLAGS += -D IA32
-			BIN = binaries/windows/pac_386
+			BIN = binaries/windows/sysproxy_386
 		endif
 	endif
 	LDFLAGS += -l rasapi32 -l wininet -Wl,--subsystem,windows
@@ -30,22 +30,22 @@ else
 		UNAME_P := $(shell uname -p)
 		ifeq ($(UNAME_P),x86_64)
 			CCFLAGS += -D AMD64
-			BIN = binaries/linux_amd64/pac
+			BIN = binaries/linux_amd64/sysproxy
 		endif
 		ifneq ($(filter %86,$(UNAME_P)),)
 			CCFLAGS += -D IA32
-			BIN = binaries/linux_386/pac
+			BIN = binaries/linux_386/sysproxy
 		endif
 		ifneq ($(filter arm%,$(UNAME_P)),)
 			CCFLAGS += -D ARM
-			BIN = binaries/linux_arm/pac
+			BIN = binaries/linux_arm/sysproxy
 		endif
 	endif
 	ifeq ($(UNAME_S),Darwin)
 		os = darwin
 		CCFLAGS += -D DARWIN -D AMD64 -x objective-c
 		LDFLAGS += -framework Cocoa -framework SystemConfiguration -framework Security
-		BIN = binaries/darwin/pac
+		BIN = binaries/darwin/sysproxy
 	endif
 endif
 
