@@ -90,6 +90,7 @@ int initialize(INTERNET_PER_CONN_OPTION_LIST* options) {
   }
   options->pOptions[0].dwOption = INTERNET_PER_CONN_FLAGS;
   options->pOptions[1].dwOption = INTERNET_PER_CONN_PROXY_SERVER;
+  options->pOptions[2].dwOption = INTERNET_PER_CONN_PROXY_BYPASS;
   return RET_NO_ERROR;
 }
 
@@ -134,8 +135,9 @@ int toggleProxy(bool turnOn, const char* proxyHost, const char* proxyPort)
   char* proxy = &buf[0];
 
   if (turnOn) {
-    options.pOptions[0].Value.dwValue = PROXY_TYPE_PROXY;
+    options.pOptions[0].Value.dwValue = PROXY_TYPE_DIRECT | PROXY_TYPE_PROXY;
     options.pOptions[1].Value.pszValue = proxy;
+    options.pOptions[2].Value.pszValue = TEXT("local");
   }
   else {
     if (strlen(proxyHost) == 0) {
@@ -156,6 +158,7 @@ int toggleProxy(bool turnOn, const char* proxyHost, const char* proxyPort)
 turnOff:
     options.pOptions[0].Value.dwValue = PROXY_TYPE_DIRECT;
     options.pOptions[1].Value.pszValue = "";
+    options.pOptions[2].Value.pszValue = "";
   }
 
   DWORD dwBufferSize = sizeof(INTERNET_PER_CONN_OPTION_LIST);
