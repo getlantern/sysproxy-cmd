@@ -16,10 +16,13 @@ int show()
   init();
   GSettings* setting = g_settings_new("org.gnome.system.proxy");
   GSettings* httpSetting = g_settings_new("org.gnome.system.proxy.http");
-  char* old_mode = g_settings_get_string(setting, "mode");
-  char* old_host = g_settings_get_string(httpSetting, "host");
-  long old_port = g_settings_get_int(httpSetting, "port");
-  printf("(%s) %s:%d\n", old_mode, old_host, old_port);
+  char* oldMode = g_settings_get_string(setting, "mode");
+  gboolean oldEnabled = g_settings_get_boolean(httpSetting, "enabled");
+  char* oldHost = g_settings_get_string(httpSetting, "host");
+  gint oldPort = g_settings_get_int(httpSetting, "port");
+  if (oldEnabled && strcmp(oldMode, "manual") == 0) {
+    printf("%s:%d\n", oldHost, oldPort);
+  }
   return RET_NO_ERROR;
 }
 
