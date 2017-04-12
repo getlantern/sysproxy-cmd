@@ -82,7 +82,7 @@ int initialize(INTERNET_PER_CONN_OPTION_LIST* options) {
   options->dwSize = dwBufferSize;
   options->pszConnection = findActiveConnection();
 
-  options->dwOptionCount = 2;
+  options->dwOptionCount = 3;
   options->dwOptionError = 0;
   options->pOptions = (INTERNET_PER_CONN_OPTION*)calloc(2, sizeof(INTERNET_PER_CONN_OPTION));
   if(!options->pOptions) {
@@ -130,10 +130,9 @@ int toggleProxy(bool turnOn, const char* proxyHost, const char* proxyPort)
     return ret;
   }
 
-  char buf[256];
-  snprintf(buf, sizeof(buf), "%s:%s", proxyHost, proxyPort);
-  char* proxy = &buf[0];
-
+  char *proxy = malloc(256);
+  snprintf(proxy, 256, "%s:%s", proxyHost, proxyPort);
+  
   if (turnOn) {
     options.pOptions[0].Value.dwValue = PROXY_TYPE_DIRECT | PROXY_TYPE_PROXY;
     options.pOptions[1].Value.pszValue = proxy;
