@@ -15,11 +15,11 @@ int show()
 {
   init();
   GSettings* setting = g_settings_new("org.gnome.system.proxy");
+  GSettings* httpSetting = g_settings_new("org.gnome.system.proxy.http");
   char* old_mode = g_settings_get_string(setting, "mode");
-  char* old_pac_url = g_settings_get_string(setting, "autoconfig-url");
-  if (strcmp(old_mode, "auto") == 0) {
-    printf("%s\n", old_pac_url);
-  }
+  char* old_host = g_settings_get_string(httpSetting, "host");
+  long old_port = g_settings_get_int(httpSetting, "port");
+  printf("(%s) %s:%d\n", old_mode, old_host, old_port);
   return RET_NO_ERROR;
 }
 
