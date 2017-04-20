@@ -132,7 +132,7 @@ int toggleProxy(bool turnOn, const char* proxyHost, const char* proxyPort)
 
   char *proxy = malloc(256);
   snprintf(proxy, 256, "%s:%s", proxyHost, proxyPort);
-  
+
   if (turnOn) {
     options.pOptions[0].Value.dwValue = PROXY_TYPE_DIRECT | PROXY_TYPE_PROXY;
     options.pOptions[1].Value.pszValue = proxy;
@@ -185,5 +185,6 @@ turnOff:
 
 cleanup:
   free(options.pOptions);
+  free(proxy);
   return ret;
 }
