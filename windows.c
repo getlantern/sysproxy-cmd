@@ -136,7 +136,7 @@ int toggleProxy(bool turnOn, const char* proxyHost, const char* proxyPort)
   if (turnOn) {
     options.pOptions[0].Value.dwValue = PROXY_TYPE_DIRECT | PROXY_TYPE_PROXY;
     options.pOptions[1].Value.pszValue = proxy;
-    options.pOptions[2].Value.pszValue = TEXT("local");
+    options.pOptions[2].Value.pszValue = TEXT("<local>");
   }
   else {
     if (strlen(proxyHost) == 0) {
