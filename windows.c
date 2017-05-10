@@ -84,7 +84,7 @@ int initialize(INTERNET_PER_CONN_OPTION_LIST* options) {
 
   options->dwOptionCount = 3;
   options->dwOptionError = 0;
-  options->pOptions = (INTERNET_PER_CONN_OPTION*)calloc(2, sizeof(INTERNET_PER_CONN_OPTION));
+  options->pOptions = (INTERNET_PER_CONN_OPTION*)calloc(3, sizeof(INTERNET_PER_CONN_OPTION));
   if(!options->pOptions) {
     return NO_MEMORY;
   }
