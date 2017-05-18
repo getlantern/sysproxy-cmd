@@ -101,7 +101,7 @@ int initialize(INTERNET_PER_CONN_OPTION_LIST* options) {
 int query(INTERNET_PER_CONN_OPTION_LIST* options) {
   DWORD dwBufferSize = sizeof(INTERNET_PER_CONN_OPTION_LIST);
   if(!InternetQueryOption(NULL, INTERNET_OPTION_PER_CONNECTION_OPTION, options, &dwBufferSize)) {
-    reportWindowsError("querying options", options->pszConnection);
+    reportWindowsError("querying options", options->pszConnection ? options->pszConnection : "LAN");
     return SYSCALL_FAILED;
   }
   return RET_NO_ERROR;
@@ -170,7 +170,7 @@ turnOff:
       &options,
       dwBufferSize);
   if (!result) {
-    reportWindowsError("setting options", options.pszConnection);
+    reportWindowsError("setting options", options.pszConnection ? options.pszConnection : "LAN");
     ret = SYSCALL_FAILED;
     goto cleanup;
   }
