@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include "common.h"
 
-void reportWindowsError(const char* action) {
+void reportWindowsError(const char* action, const char* connName) {
   LPTSTR pErrMsg = NULL;
   DWORD errCode = GetLastError();
   FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER|
@@ -18,13 +18,19 @@ void reportWindowsError(const char* action) {
       pErrMsg,
       0,
       NULL);
-  fprintf(stderr, "Error %s: %lu %s\n", action, errCode, pErrMsg);
+  if (NULL != connName) {
+    fprintf(stderr, "Error %s for connection '%s': %lu %s\n",
+        action, connName, errCode, pErrMsg);
+  } else {
+    fprintf(stderr, "Error %s: %lu %s\n", action, errCode, pErrMsg);
+  }
 }
 
-// Stolen from https://github.com/getlantern/winproxy
-// Figure out which Dial-Up or VPN connection is active; in a normal LAN connection, this should
-// return NULL. NOTE: For some reason this method fails when compiled in Debug mode but works
-// every time in Release mode.
+// Stolen from https://github.com/getlantern/winproxy Figure out which Dial-Up
+// or VPN connection is active; in a normal LAN connection, this should return
+// NULL. NOTE: For some reason this method fails when compiled in Debug mode
+// but works every time in Release mode.
+// TODO: we may want to find all active connections instead of the first one.
 LPTSTR findActiveConnection() {
   DWORD dwCb = sizeof(RASCONN);
   DWORD dwErr = ERROR_SUCCESS;
@@ -34,9 +40,7 @@ LPTSTR findActiveConnection() {
   RASCONNSTATUS rasconnstatus;
   rasconnstatus.dwSize = sizeof(RASCONNSTATUS);
 
-  //
   // Loop through in case the information from RAS changes between calls.
-  //
   while (dwRetries--) {
     // If the memory is allocated, free it.
     if (NULL != lpRasConn) {
@@ -61,9 +65,8 @@ LPTSTR findActiveConnection() {
       break;
     }
   }
-  //
-  // In the success case, print the names of the connections.
-  //
+
+  // In the success case, return the first active connection.
   if (ERROR_SUCCESS == dwErr) {
     DWORD i;
     for (i = 0; i < dwConnections; i++) {
@@ -80,12 +83,13 @@ LPTSTR findActiveConnection() {
 int initialize(INTERNET_PER_CONN_OPTION_LIST* options) {
   DWORD dwBufferSize = sizeof(INTERNET_PER_CONN_OPTION_LIST);
   options->dwSize = dwBufferSize;
+  // NULL for LAN, connection name otherwise.
   options->pszConnection = findActiveConnection();
 
   options->dwOptionCount = 3;
   options->dwOptionError = 0;
   options->pOptions = (INTERNET_PER_CONN_OPTION*)calloc(3, sizeof(INTERNET_PER_CONN_OPTION));
-  if(!options->pOptions) {
+  if(NULL == options->pOptions) {
     return NO_MEMORY;
   }
   options->pOptions[0].dwOption = INTERNET_PER_CONN_FLAGS;
@@ -97,7 +101,7 @@ int initialize(INTERNET_PER_CONN_OPTION_LIST* options) {
 int query(INTERNET_PER_CONN_OPTION_LIST* options) {
   DWORD dwBufferSize = sizeof(INTERNET_PER_CONN_OPTION_LIST);
   if(!InternetQueryOption(NULL, INTERNET_OPTION_PER_CONNECTION_OPTION, options, &dwBufferSize)) {
-    reportWindowsError("Querying options");
+    reportWindowsError("querying options", options->pszConnection ? options->pszConnection : "LAN");
     return SYSCALL_FAILED;
   }
   return RET_NO_ERROR;
@@ -166,19 +170,19 @@ turnOff:
       &options,
       dwBufferSize);
   if (!result) {
-    reportWindowsError("setting options");
+    reportWindowsError("setting options", options.pszConnection ? options.pszConnection : "LAN");
     ret = SYSCALL_FAILED;
     goto cleanup;
   }
   result = InternetSetOption(NULL, INTERNET_OPTION_SETTINGS_CHANGED, NULL, 0);
   if (!result) {
-    reportWindowsError("propagating changes");
+    reportWindowsError("propagating changes", NULL);
     ret = SYSCALL_FAILED;
     goto cleanup;
   }
   result = InternetSetOption(NULL, INTERNET_OPTION_REFRESH , NULL, 0);
   if (!result) {
-    reportWindowsError("refreshing");
+    reportWindowsError("refreshing", NULL);
     ret = SYSCALL_FAILED;
     goto cleanup;
   }
