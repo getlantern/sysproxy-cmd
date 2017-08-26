@@ -228,7 +228,7 @@ void createInvisibleWindow()
 
   hwnd=CreateWindowEx(0,"SysproxyWindow","SysproxyWindow",WS_OVERLAPPEDWINDOW,CW_USEDEFAULT,CW_USEDEFAULT,CW_USEDEFAULT,CW_USEDEFAULT,(HWND) NULL, (HMENU) NULL, GetModuleHandle(NULL), (LPVOID) NULL);
   if(!hwnd)
-    printf("FAILED to create window!!!  %d\n",GetLastError());
+    printf("FAILED to create window!!!  %zu\n",GetLastError());
 }
 
 DWORD WINAPI runInvisibleWindowThread(LPVOID lpParam)
