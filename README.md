@@ -33,7 +33,7 @@ sysproxy setuid
 *  **Windows**
 
 Install [MinGW-W64](http://sourceforge.net/projects/mingw-w64) to build sysproxy
-as it has up to date SDK headers we require.
+as it has up to date SDK headers we require. The make command is `mingw32-make`.
 
 To avoid bringing up console window, it doesn't show anything directly to
 console. Piping the result to other utilities should work.
