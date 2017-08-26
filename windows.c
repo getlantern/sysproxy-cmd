@@ -4,6 +4,7 @@
 #include <ras.h>
 #include <tchar.h>
 #include <stdio.h>
+#include <signal.h>
 #include "common.h"
 
 void reportWindowsError(const char* action, const char* connName) {
@@ -126,7 +127,11 @@ int show()
   return ret;
 }
 
-int toggleProxy(bool turnOn, const char* proxyHost, const char* proxyPort)
+bool turnOn = 0;
+const char* proxyHost;
+const char* proxyPort;
+
+int doToggleProxy()
 {
   INTERNET_PER_CONN_OPTION_LIST options;
   int ret = initialize(&options);
@@ -191,4 +196,82 @@ cleanup:
   free(options.pOptions);
   free(proxy);
   return ret;
+}
+
+void handleSignals(int signal)
+{
+  doToggleProxy();
+}
+
+LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
+	switch (message) {
+		case WM_ENDSESSION:
+			printf("Session ending\n");
+			doToggleProxy();
+			break;
+		default:
+			return DefWindowProc(hWnd, message, wParam, lParam);
+	}
+	return 0;
+}
+
+// courtesy of https://social.msdn.microsoft.com/Forums/windowsdesktop/en-US/abf09824-4e4c-4f2c-ae1e-5981f06c9c6e/windows-7-console-application-has-no-way-of-trapping-logoffshutdown-event?forum=windowscompatibility
+void createInvisibleWindow()
+{
+  HWND hwnd;
+  WNDCLASS wc={0};
+  wc.lpfnWndProc=(WNDPROC)WndProc;
+  wc.hInstance=GetModuleHandle(NULL);
+  wc.hIcon=LoadIcon(GetModuleHandle(NULL), "SysproxyWindow");
+  wc.lpszClassName="SysproxyWindow";
+  RegisterClass(&wc);
+
+  hwnd=CreateWindowEx(0,"SysproxyWindow","SysproxyWindow",WS_OVERLAPPEDWINDOW,CW_USEDEFAULT,CW_USEDEFAULT,CW_USEDEFAULT,CW_USEDEFAULT,(HWND) NULL, (HMENU) NULL, GetModuleHandle(NULL), (LPVOID) NULL);
+  if(!hwnd)
+    printf("FAILED to create window!!!  %d\n",GetLastError());
+}
+
+DWORD WINAPI runInvisibleWindowThread(LPVOID lpParam)
+{
+  MSG msg;
+  createInvisibleWindow();
+  while (GetMessage(&msg,(HWND) NULL , 0 , 0))
+  {
+    TranslateMessage(&msg);
+    DispatchMessage(&msg);
+  }
+  return 0;
+}
+
+int toggleProxy(bool _turnOn, const char* _proxyHost, const char* _proxyPort)
+{
+  turnOn = _turnOn;
+  proxyHost = _proxyHost;
+  proxyPort = _proxyPort;
+
+  if (turnOn)
+  {
+    return doToggleProxy();
+  }
+
+  // Register signal handlers to make sure we turn proxy off no matter what
+  signal(SIGABRT, handleSignals);
+  signal(SIGFPE, handleSignals);
+  signal(SIGILL, handleSignals);
+  signal(SIGINT, handleSignals);
+  signal(SIGSEGV, handleSignals);
+  signal(SIGTERM, handleSignals);
+  signal(SIGSEGV, handleSignals);
+
+  // Create an invisible window so that we can respond to system shutdown and
+  // make sure that we finish setting the system proxy to off.
+  DWORD tid;
+  HANDLE hInvisiblethread=CreateThread(NULL, 0, runInvisibleWindowThread, NULL, 0, &tid);
+
+  // wait for input from stdin (or close) before toggling off
+  getchar();
+
+  int result = doToggleProxy();
+  CloseHandle(hInvisiblethread);
+  return result;
 }

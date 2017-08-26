@@ -28,6 +28,11 @@ int show()
 
 int toggleProxy(bool turnOn, const char* proxyHost, const char* proxyPort)
 {
+  if (!turnOn) {
+    // wait for input from stdin (or close) before toggling off
+    getchar();
+  }
+
   long port = strtol(proxyPort, NULL, 10);
   if (port == 0) {
     fprintf(stderr, "unable to parse port '%s'\n", proxyPort);

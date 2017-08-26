@@ -1,5 +1,6 @@
 #include <errno.h>
 #include <stdbool.h>
+#include <stdio.h>
 
 #ifdef DARWIN
 int setUid();
