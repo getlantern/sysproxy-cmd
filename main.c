@@ -29,6 +29,8 @@ int main(int argc, char* argv[]) {
     if (strcmp(argv[1], "on") == 0) {
       return toggleProxy(true, argv[2], argv[3]);
     } else if (strcmp(argv[1], "off") == 0) {
+      // wait for input from stdin (or close) before toggling
+      getchar();
       return toggleProxy(false, argv[2], argv[3]);
     } else {
       usage(argv[0]);
