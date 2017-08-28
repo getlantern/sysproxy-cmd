@@ -10,9 +10,9 @@
 
 /* === implement details === */
 
-typedef Boolean (*visitor) (SCNetworkProtocolRef proxyProtocolRef, NSDictionary* oldPreferences, bool turnOn, const char* proxyHost, const char* proxyPort);
+typedef Boolean (*visitor) (SCNetworkProtocolRef proxyProtocolRef, NSDictionary* oldPreferences, bool turnOn);
 
-Boolean showAction(SCNetworkProtocolRef proxyProtocolRef /*unused*/, NSDictionary* oldPreferences, bool turnOn /*unused*/, const char* proxyHost /*unused*/, const char* proxyPort /*unused*/)
+Boolean showAction(SCNetworkProtocolRef proxyProtocolRef /*unused*/, NSDictionary* oldPreferences, bool turnOn /*unused*/)
 {
   NSNumber* on = [oldPreferences valueForKey:(NSString*)kSCPropNetProxiesHTTPEnable];
   NSString* nsOldProxyHost = [oldPreferences valueForKey:(NSString*)kSCPropNetProxiesHTTPProxy];
@@ -23,7 +23,7 @@ Boolean showAction(SCNetworkProtocolRef proxyProtocolRef /*unused*/, NSDictionar
   return TRUE;
 }
 
-Boolean toggleAction(SCNetworkProtocolRef proxyProtocolRef, NSDictionary* oldPreferences, bool turnOn, const char* proxyHost, const char* proxyPort)
+Boolean toggleAction(SCNetworkProtocolRef proxyProtocolRef, NSDictionary* oldPreferences, bool turnOn)
 {
   NSString* nsProxyHost = [[NSString alloc] initWithCString: proxyHost encoding:NSUTF8StringEncoding];
   NSNumber* nsProxyPort = [[NSNumber alloc] initWithLong: [[[NSString alloc] initWithCString: proxyPort encoding:NSUTF8StringEncoding] integerValue]];
@@ -63,7 +63,7 @@ Boolean toggleAction(SCNetworkProtocolRef proxyProtocolRef, NSDictionary* oldPre
   return success;
 }
 
-int visit(visitor v, bool persist, bool turnOn, const char* proxyHost, const char* proxyPort)
+int visit(visitor v, bool persist, bool turnOn)
 {
   int ret = RET_NO_ERROR;
   Boolean success;
@@ -113,7 +113,7 @@ int visit(visitor v, bool persist, bool turnOn, const char* proxyHost, const cha
     }
 
     oldPreferences = (__bridge NSDictionary*)SCNetworkProtocolGetConfiguration(proxyProtocolRef);
-    if (!v(proxyProtocolRef, oldPreferences, turnOn, proxyHost, proxyPort)) {
+    if (!v(proxyProtocolRef, oldPreferences, turnOn)) {
       ret = SYSCALL_FAILED;
     }
 
@@ -174,10 +174,10 @@ int setUid()
 
 int show()
 {
-  return visit(&showAction, false, false /*unused*/, "" /*unused*/, "" /*unused*/);
+  return visit(&showAction, false, false /*unused*/);
 }
 
-int toggleProxy(bool turnOn, const char* proxyHost, const char* proxyPort)
+int toggleProxy(bool turnOn)
 {
-  return visit(&toggleAction, true, turnOn, proxyHost, proxyPort);
+  return visit(&toggleAction, true, turnOn);
 }

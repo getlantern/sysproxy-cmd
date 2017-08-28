@@ -4,9 +4,6 @@
 #include <signal.h>
 #include "common.h"
 
-static const char* proxyHost;
-static const char* proxyPort;
-
 void usage(const char* binName)
 {
   printf("Usage: %s [show | on | off | wait-and-cleanup <proxy host> <proxy port>]\n", binName);
@@ -15,7 +12,7 @@ void usage(const char* binName)
 
 void turnOffProxyOnSignal(int signal)
 {
-  toggleProxy(false, proxyHost, proxyPort);
+  toggleProxy(false);
   exit(0);
 }
 
@@ -51,9 +48,9 @@ int main(int argc, char* argv[]) {
     proxyHost = argv[2];
     proxyPort = argv[3];
     if (strcmp(argv[1], "on") == 0) {
-      return toggleProxy(true, proxyHost, proxyPort);
+      return toggleProxy(true);
     } else if (strcmp(argv[1], "off") == 0) {
-      return toggleProxy(false, proxyHost, proxyPort);
+      return toggleProxy(false);
     } else if (strcmp(argv[1], "wait-and-cleanup") == 0) {
       setupSignals();
 #ifdef _WIN32
@@ -61,7 +58,7 @@ int main(int argc, char* argv[]) {
 #endif
       // wait for input from stdin (or close), then toggle off
       getchar();
-      return toggleProxy(false, proxyHost, proxyPort);
+      return toggleProxy(false);
     } else {
       usage(argv[0]);
     }
