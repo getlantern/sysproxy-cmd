@@ -16,6 +16,7 @@ void usage(const char* binName)
 void turnOffProxyOnSignal(int signal)
 {
   toggleProxy(false, proxyHost, proxyPort);
+  exit(0);
 }
 
 void setupSignals()
