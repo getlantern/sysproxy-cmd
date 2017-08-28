@@ -9,7 +9,7 @@ static const char* proxyPort;
 
 void usage(const char* binName)
 {
-  printf("Usage: %s [show | on | off <proxy host> <proxy port> [-wait-and-cleanup]]\n", binName);
+  printf("Usage: %s [show | on | off | wait-and-cleanup <proxy host> <proxy port>]\n", binName);
   exit(INVALID_FORMAT);
 }
 
@@ -47,30 +47,23 @@ int main(int argc, char* argv[]) {
     if (argc < 4) {
       usage(argv[0]);
     }
-    int retval = INVALID_FORMAT;
     proxyHost = argv[2];
     proxyPort = argv[3];
     if (strcmp(argv[1], "on") == 0) {
-      retval = toggleProxy(true, proxyHost, proxyPort);
-      if (argc >= 5) {
-        if (strcmp(argv[4], "-wait-and-cleanup") == 0) {
-          setupSignals();
-#ifdef _WIN32
-          setupSystemShutdownHandler();
-#endif
-          // wait for input from stdin (or close), then toggle off
-          getchar();
-          retval = toggleProxy(false, proxyHost, proxyPort);
-        } else {
-          usage(argv[0]);
-        }
-      }
+      return toggleProxy(true, proxyHost, proxyPort);
     } else if (strcmp(argv[1], "off") == 0) {
-      retval = toggleProxy(false, proxyHost, proxyPort);
+      return toggleProxy(false, proxyHost, proxyPort);
+    } else if (strcmp(argv[1], "wait-and-cleanup") == 0) {
+      setupSignals();
+#ifdef _WIN32
+      setupSystemShutdownHandler();
+#endif
+      // wait for input from stdin (or close), then toggle off
+      getchar();
+      return toggleProxy(false, proxyHost, proxyPort);
     } else {
       usage(argv[0]);
     }
-    return retval;
   }
   // code never reaches here, just avoids compiler from complaining.
   return RET_NO_ERROR;
