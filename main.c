@@ -13,7 +13,7 @@ void usage(const char* binName)
   exit(INVALID_FORMAT);
 }
 
-void handleSignals(int signal)
+void turnOffProxyOnSignal(int signal)
 {
   toggleProxy(false, proxyHost, proxyPort);
 }
@@ -21,13 +21,13 @@ void handleSignals(int signal)
 void setupSignals()
 {
   // Register signal handlers to make sure we turn proxy off no matter what
-  signal(SIGABRT, handleSignals);
-  signal(SIGFPE, handleSignals);
-  signal(SIGILL, handleSignals);
-  signal(SIGINT, handleSignals);
-  signal(SIGSEGV, handleSignals);
-  signal(SIGTERM, handleSignals);
-  signal(SIGSEGV, handleSignals);
+  signal(SIGABRT, turnOffProxyOnSignal);
+  signal(SIGFPE, turnOffProxyOnSignal);
+  signal(SIGILL, turnOffProxyOnSignal);
+  signal(SIGINT, turnOffProxyOnSignal);
+  signal(SIGSEGV, turnOffProxyOnSignal);
+  signal(SIGTERM, turnOffProxyOnSignal);
+  signal(SIGSEGV, turnOffProxyOnSignal);
 }
 
 int main(int argc, char* argv[]) {
