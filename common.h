@@ -7,7 +7,7 @@ int elevate(char *path, char *prompt, char *iconPath);
 #endif
 
 #ifdef _WIN32
-int setupSystemShutdownHandler()
+void setupSystemShutdownHandler();
 #endif
 
 int show();

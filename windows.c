@@ -243,12 +243,16 @@ DWORD WINAPI runInvisibleWindowThread(LPVOID lpParam)
   return 0;
 }
 
-int setupSystemShutdownHandler()
+void setupSystemShutdownHandler()
 {
   // Create an invisible window so that we can respond to system shutdown and
   // make sure that we finish setting the system proxy to off.
   DWORD tid;
   HANDLE hInvisiblethread=CreateThread(NULL, 0, runInvisibleWindowThread, NULL, 0, &tid);
+  if (hInvisiblethread == NULL)
+  {
+    printf("FAILED to create thread for invisible window!!!  %Iu\n",GetLastError());
+  }
 }
 
 

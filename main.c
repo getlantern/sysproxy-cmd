@@ -56,7 +56,7 @@ int main(int argc, char* argv[]) {
         if (strcmp(argv[4], "-wait-and-cleanup") == 0) {
           setupSignals();
 #ifdef _WIN32
-          setupSystemShutdownHandler()
+          setupSystemShutdownHandler();
 #endif
           // wait for input from stdin (or close), then toggle off
           getchar();
