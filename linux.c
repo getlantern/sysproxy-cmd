@@ -26,7 +26,7 @@ int show()
   return RET_NO_ERROR;
 }
 
-int toggleProxy(bool turnOn, const char* proxyHost, const char* proxyPort)
+int toggleProxy(bool turnOn)
 {
   long port = strtol(proxyPort, NULL, 10);
   if (port == 0) {

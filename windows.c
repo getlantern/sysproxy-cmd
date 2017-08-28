@@ -126,9 +126,6 @@ int show()
   return ret;
 }
 
-static const char* proxyHost;
-static const char* proxyPort;
-
 int doToggleProxy(bool turnOn)
 {
   INTERNET_PER_CONN_OPTION_LIST options;
@@ -196,11 +193,9 @@ cleanup:
   return ret;
 }
 
-int toggleProxy(bool _turnOn, const char* _proxyHost, const char* _proxyPort)
+int toggleProxy(bool turnOn)
 {
-  proxyHost = _proxyHost;
-  proxyPort = _proxyPort;
-  return doToggleProxy(_turnOn);
+  return doToggleProxy(turnOn);
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
@@ -254,5 +249,3 @@ void setupSystemShutdownHandler()
     printf("FAILED to create thread for invisible window!!!  %Iu\n",GetLastError());
   }
 }
-
-
