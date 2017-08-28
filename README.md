@@ -10,9 +10,13 @@ Note - you will need to run make separately on each platform.
 
 ```sh
 sysproxy show
-sysproxy on  <proxy host> <proxy port>
+sysproxy on  <proxy host> <proxy port> [-wait-and-cleanup]
 sysproxy off <proxy host> <proxy port>
 ```
+
+If `-wait-and-cleanup` option is passed, `sysproxy on` waits for input from
+stdin (or close) and turn off proxy setting. Any signal or Windows system
+shutdown message triggers the cleanup too.
 
 `sysproxy off` will turn off proxy setting only if the existing host and port
 equal <proxy host> <proxy port>.

@@ -1,10 +1,13 @@
 #include <errno.h>
 #include <stdbool.h>
-#include <stdio.h>
 
 #ifdef DARWIN
 int setUid();
 int elevate(char *path, char *prompt, char *iconPath);
+#endif
+
+#ifdef _WIN32
+int setupSystemShutdownHandler()
 #endif
 
 int show();
