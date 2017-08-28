@@ -4,7 +4,6 @@
 #include <ras.h>
 #include <tchar.h>
 #include <stdio.h>
-#include <signal.h>
 #include "common.h"
 
 void reportWindowsError(const char* action, const char* connName) {
@@ -127,11 +126,10 @@ int show()
   return ret;
 }
 
-bool turnOn = 0;
-const char* proxyHost;
-const char* proxyPort;
+static const char* proxyHost;
+static const char* proxyPort;
 
-int doToggleProxy()
+int doToggleProxy(bool turnOn)
 {
   INTERNET_PER_CONN_OPTION_LIST options;
   int ret = initialize(&options);
@@ -198,16 +196,18 @@ cleanup:
   return ret;
 }
 
-void handleSignals(int signal)
+int toggleProxy(bool _turnOn, const char* _proxyHost, const char* _proxyPort)
 {
-  doToggleProxy();
+  proxyHost = _proxyHost;
+  proxyPort = _proxyPort;
+  return doToggleProxy(_turnOn);
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
 	switch (message) {
 		case WM_ENDSESSION:
 			printf("Session ending\n");
-			doToggleProxy();
+			doToggleProxy(false);
 			break;
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
@@ -243,35 +243,16 @@ DWORD WINAPI runInvisibleWindowThread(LPVOID lpParam)
   return 0;
 }
 
-int toggleProxy(bool _turnOn, const char* _proxyHost, const char* _proxyPort)
+void setupSystemShutdownHandler()
 {
-  turnOn = _turnOn;
-  proxyHost = _proxyHost;
-  proxyPort = _proxyPort;
-
-  if (turnOn)
-  {
-    return doToggleProxy();
-  }
-
-  // Register signal handlers to make sure we turn proxy off no matter what
-  signal(SIGABRT, handleSignals);
-  signal(SIGFPE, handleSignals);
-  signal(SIGILL, handleSignals);
-  signal(SIGINT, handleSignals);
-  signal(SIGSEGV, handleSignals);
-  signal(SIGTERM, handleSignals);
-  signal(SIGSEGV, handleSignals);
-
   // Create an invisible window so that we can respond to system shutdown and
   // make sure that we finish setting the system proxy to off.
   DWORD tid;
   HANDLE hInvisiblethread=CreateThread(NULL, 0, runInvisibleWindowThread, NULL, 0, &tid);
-
-  // wait for input from stdin (or close) before toggling off
-  getchar();
-
-  int result = doToggleProxy();
-  CloseHandle(hInvisiblethread);
-  return result;
+  if (hInvisiblethread == NULL)
+  {
+    printf("FAILED to create thread for invisible window!!!  %Iu\n",GetLastError());
+  }
 }
+
+

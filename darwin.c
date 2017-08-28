@@ -25,11 +25,6 @@ Boolean showAction(SCNetworkProtocolRef proxyProtocolRef /*unused*/, NSDictionar
 
 Boolean toggleAction(SCNetworkProtocolRef proxyProtocolRef, NSDictionary* oldPreferences, bool turnOn, const char* proxyHost, const char* proxyPort)
 {
-  if (!turnOn) {
-    // wait for input from stdin (or close) before toggling off
-    getchar();
-  }
-
   NSString* nsProxyHost = [[NSString alloc] initWithCString: proxyHost encoding:NSUTF8StringEncoding];
   NSNumber* nsProxyPort = [[NSNumber alloc] initWithLong: [[[NSString alloc] initWithCString: proxyPort encoding:NSUTF8StringEncoding] integerValue]];
   NSString* nsOldProxyHost;
