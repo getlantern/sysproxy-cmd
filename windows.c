@@ -126,7 +126,10 @@ int show()
   return ret;
 }
 
-int toggleProxy(bool turnOn, const char* proxyHost, const char* proxyPort)
+static const char* proxyHost;
+static const char* proxyPort;
+
+int doToggleProxy(bool turnOn)
 {
   INTERNET_PER_CONN_OPTION_LIST options;
   int ret = initialize(&options);
@@ -192,3 +195,64 @@ cleanup:
   free(proxy);
   return ret;
 }
+
+int toggleProxy(bool _turnOn, const char* _proxyHost, const char* _proxyPort)
+{
+  proxyHost = _proxyHost;
+  proxyPort = _proxyPort;
+  return doToggleProxy(_turnOn);
+}
+
+LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
+	switch (message) {
+		case WM_ENDSESSION:
+			printf("Session ending\n");
+			doToggleProxy(false);
+			break;
+		default:
+			return DefWindowProc(hWnd, message, wParam, lParam);
+	}
+	return 0;
+}
+
+// courtesy of https://social.msdn.microsoft.com/Forums/windowsdesktop/en-US/abf09824-4e4c-4f2c-ae1e-5981f06c9c6e/windows-7-console-application-has-no-way-of-trapping-logoffshutdown-event?forum=windowscompatibility
+void createInvisibleWindow()
+{
+  HWND hwnd;
+  WNDCLASS wc={0};
+  wc.lpfnWndProc=(WNDPROC)WndProc;
+  wc.hInstance=GetModuleHandle(NULL);
+  wc.hIcon=LoadIcon(GetModuleHandle(NULL), "SysproxyWindow");
+  wc.lpszClassName="SysproxyWindow";
+  RegisterClass(&wc);
+
+  hwnd=CreateWindowEx(0,"SysproxyWindow","SysproxyWindow",WS_OVERLAPPEDWINDOW,CW_USEDEFAULT,CW_USEDEFAULT,CW_USEDEFAULT,CW_USEDEFAULT,(HWND) NULL, (HMENU) NULL, GetModuleHandle(NULL), (LPVOID) NULL);
+  if(!hwnd)
+    printf("FAILED to create window!!!  %Iu\n",GetLastError());
+}
+
+DWORD WINAPI runInvisibleWindowThread(LPVOID lpParam)
+{
+  MSG msg;
+  createInvisibleWindow();
+  while (GetMessage(&msg,(HWND) NULL , 0 , 0))
+  {
+    TranslateMessage(&msg);
+    DispatchMessage(&msg);
+  }
+  return 0;
+}
+
+void setupSystemShutdownHandler()
+{
+  // Create an invisible window so that we can respond to system shutdown and
+  // make sure that we finish setting the system proxy to off.
+  DWORD tid;
+  HANDLE hInvisiblethread=CreateThread(NULL, 0, runInvisibleWindowThread, NULL, 0, &tid);
+  if (hInvisiblethread == NULL)
+  {
+    printf("FAILED to create thread for invisible window!!!  %Iu\n",GetLastError());
+  }
+}
+
+

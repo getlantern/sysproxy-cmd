@@ -6,6 +6,10 @@ int setUid();
 int elevate(char *path, char *prompt, char *iconPath);
 #endif
 
+#ifdef _WIN32
+void setupSystemShutdownHandler();
+#endif
+
 int show();
 int toggleProxy(bool turnOn, const char* proxyHost, const char* proxyPort);
 

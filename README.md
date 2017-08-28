@@ -12,10 +12,16 @@ Note - you will need to run make separately on each platform.
 sysproxy show
 sysproxy on  <proxy host> <proxy port>
 sysproxy off <proxy host> <proxy port>
+sysproxy wait-and-cleanup <proxy host> <proxy port>
 ```
 
-`sysproxy off` will turn off proxy setting only if the existing host and port
-equal <proxy host> <proxy port>.
+`sysproxy off` and `sysproxy wait-and-cleanup` turns off proxy setting only if the
+existing host and port equal <proxy host> <proxy port>.
+
+`sysproxy wait-and-cleanup` differs from `sysproxy off` in that it waits for input
+from stdin (or close) before turning off proxy setting. Any signal or Windows
+system shutdown message triggers the cleanup too.
+
 
 # Notes
 
@@ -33,7 +39,7 @@ sysproxy setuid
 *  **Windows**
 
 Install [MinGW-W64](http://sourceforge.net/projects/mingw-w64) to build sysproxy
-as it has up to date SDK headers we require.
+as it has up to date SDK headers we require. The make command is `mingw32-make`.
 
 To avoid bringing up console window, it doesn't show anything directly to
 console. Piping the result to other utilities should work.
