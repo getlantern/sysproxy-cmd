@@ -221,7 +221,14 @@ int toggleProxy(bool turnOn)
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
   switch (message) {
+    case WM_QUERYENDSESSION:
+      // Clear proxy as soon as possible.
+      LOG_INFO("Begin WM_QUERYENDSESSION");
+      doToggleProxy(false);
+      LOG_INFO("End WM_QUERYENDSESSION");
+      return TRUE;
     case WM_ENDSESSION:
+      // As the last resort, when the OS is forcibly shut down.
       LOG_INFO("Begin WM_ENDSESSION");
       doToggleProxy(false);
       LOG_INFO("End WM_ENDSESSION");
