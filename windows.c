@@ -263,16 +263,13 @@ void setupSystemShutdownHandler()
     printf("FAILED to create thread for invisible window!!!  %Iu\n",GetLastError());
   }
 
-  // Make this process shut down earlier than parent so that in system logoff
-  // case, we successfully disable system proxy before parent process tried to
-  // do so and fails.
+  // Make this process shut down very early so that in system logoff case, we
+  // successfully disable system proxy before parent process tries to do so and
+  // fails, and also do it early enough that required system services have not
+  // yet shut down.
   //
   // See https://stackoverflow.com/questions/8760509/graceful-application-shutdown-when-windows-shuts-down
-  DWORD dwLevel, dwFlags;
-  BOOL fOkay = GetProcessShutdownParameters(&dwLevel, &dwFlags);
-  if (fOkay && dwLevel > 0x100) {
-    fOkay = SetProcessShutdownParameters(dwLevel + 1, SHUTDOWN_NORETRY);
-  }
+  BOOL fOkay = SetProcessShutdownParameters(0x3FF, SHUTDOWN_NORETRY);
   if (!fOkay) {
     printf("Failed to prioritize sysproxy-cmd for shutdown\n");
   }
