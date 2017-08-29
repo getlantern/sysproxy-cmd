@@ -148,9 +148,9 @@ int doToggleProxy(bool turnOn)
     return ret;
   }
 
-  LOG_INFO("Begin doToggleProxy, turning on? %s", turnOn ? "true" : "false");
   char *proxy = malloc(256);
   snprintf(proxy, 256, "%s:%s", proxyHost, proxyPort);
+  LOG_INFO("Begin doToggleProxy, turning on? %s, proxy: %s", turnOn ? "true" : "false", proxy);
 
   if (turnOn) {
     options.pOptions[0].Value.dwValue = PROXY_TYPE_DIRECT | PROXY_TYPE_PROXY;
@@ -170,6 +170,7 @@ int doToggleProxy(bool turnOn)
     if ((options.pOptions[0].Value.dwValue & PROXY_TYPE_PROXY) == 0
         || options.pOptions[1].Value.pszValue == NULL
         || strncmp(proxy, options.pOptions[1].Value.pszValue, strlen(proxy)) != 0) {
+      LOG_INFO("unexpected current proxy %s, skip turning off", options.pOptions[1].Value.pszValue);
       goto cleanup;
     }
     // fall through
