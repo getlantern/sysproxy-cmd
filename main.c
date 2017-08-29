@@ -39,7 +39,7 @@ int main(int argc, char* argv[]) {
   }
 #endif
 #ifdef _WIN32
-  initialize_event_log()
+  initialize_event_log();
 #endif
 
   if (strcmp(argv[1], "show") == 0) {
