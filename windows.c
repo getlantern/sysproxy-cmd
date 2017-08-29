@@ -6,6 +6,17 @@
 #include <stdio.h>
 #include "common.h"
 
+LPCTSTR custom_log_name = "sysproxy-cmd";
+HANDLE event_log;
+
+void LOG_INFO(LPCTSTR message) {
+  ReportEvent(event_log, EVENTLOG_SUCCESS, 0, 0, NULL, 1, 0, &message, NULL);
+}
+
+void LOG_ERROR(LPCTSTR message) {
+  ReportEvent(event_log, EVENTLOG_ERROR_TYPE, 0, 0, NULL, 1, 0, &message, NULL);
+}
+
 void reportWindowsError(const char* action, const char* connName) {
   LPTSTR pErrMsg = NULL;
   DWORD errCode = GetLastError();
@@ -18,6 +29,7 @@ void reportWindowsError(const char* action, const char* connName) {
       pErrMsg,
       0,
       NULL);
+  LOG_ERROR(pErrMsg);
   if (NULL != connName) {
     fprintf(stderr, "Error %s for connection '%s': %lu %s\n",
         action, connName, errCode, pErrMsg);
@@ -81,6 +93,7 @@ LPTSTR findActiveConnection() {
 }
 
 int initialize(INTERNET_PER_CONN_OPTION_LIST* options) {
+  event_log = RegisterEventSource(NULL, custom_log_name);
   DWORD dwBufferSize = sizeof(INTERNET_PER_CONN_OPTION_LIST);
   options->dwSize = dwBufferSize;
   // NULL for LAN, connection name otherwise.
@@ -134,6 +147,7 @@ int doToggleProxy(bool turnOn)
     return ret;
   }
 
+  LOG_INFO("Start doToggleProxy");
   char *proxy = malloc(256);
   snprintf(proxy, 256, "%s:%s", proxyHost, proxyPort);
 
@@ -190,6 +204,7 @@ turnOff:
 cleanup:
   free(options.pOptions);
   free(proxy);
+  LOG_INFO("Stop doToggleProxy");
   return ret;
 }
 
@@ -199,15 +214,16 @@ int toggleProxy(bool turnOn)
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
-	switch (message) {
-		case WM_ENDSESSION:
-			printf("Session ending\n");
-			doToggleProxy(false);
-			break;
-		default:
-			return DefWindowProc(hWnd, message, wParam, lParam);
-	}
-	return 0;
+  switch (message) {
+    case WM_ENDSESSION:
+      LOG_INFO("Start WM_ENDSESSION");
+      doToggleProxy(false);
+      LOG_INFO("Stop WM_ENDSESSION");
+      break;
+    default:
+      return DefWindowProc(hWnd, message, wParam, lParam);
+  }
+  return 0;
 }
 
 // courtesy of https://social.msdn.microsoft.com/Forums/windowsdesktop/en-US/abf09824-4e4c-4f2c-ae1e-5981f06c9c6e/windows-7-console-application-has-no-way-of-trapping-logoffshutdown-event?forum=windowscompatibility
@@ -222,8 +238,10 @@ void createInvisibleWindow()
   RegisterClass(&wc);
 
   hwnd=CreateWindowEx(0,"SysproxyWindow","SysproxyWindow",WS_OVERLAPPEDWINDOW,CW_USEDEFAULT,CW_USEDEFAULT,CW_USEDEFAULT,CW_USEDEFAULT,(HWND) NULL, (HMENU) NULL, GetModuleHandle(NULL), (LPVOID) NULL);
-  if(!hwnd)
+  if(!hwnd) {
+    LOG_ERROR("FAILED to create window!!!");
     printf("FAILED to create window!!!  %Iu\n",GetLastError());
+  }
 }
 
 DWORD WINAPI runInvisibleWindowThread(LPVOID lpParam)
@@ -246,6 +264,7 @@ void setupSystemShutdownHandler()
   HANDLE hInvisiblethread=CreateThread(NULL, 0, runInvisibleWindowThread, NULL, 0, &tid);
   if (hInvisiblethread == NULL)
   {
+    LOG_ERROR("FAILED to create thread for invisible window!!!  ");
     printf("FAILED to create thread for invisible window!!!  %Iu\n",GetLastError());
   }
 }
