@@ -38,6 +38,9 @@ int main(int argc, char* argv[]) {
     return setUid();
   }
 #endif
+#ifdef _WIN32
+  initialize_event_log()
+#endif
 
   if (strcmp(argv[1], "show") == 0) {
     return show();

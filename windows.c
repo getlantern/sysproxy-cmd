@@ -9,6 +9,10 @@
 LPCTSTR custom_log_name = "sysproxy-cmd";
 HANDLE event_log;
 
+void initialize_event_log() {
+  event_log = RegisterEventSource(NULL, custom_log_name);
+}
+
 void LOG_INFO(LPCTSTR fmt, ...) {
   char *buf = malloc(1024);
   va_list args;
@@ -94,7 +98,6 @@ LPTSTR findActiveConnection() {
 }
 
 int initialize(INTERNET_PER_CONN_OPTION_LIST* options) {
-  event_log = RegisterEventSource(NULL, custom_log_name);
   DWORD dwBufferSize = sizeof(INTERNET_PER_CONN_OPTION_LIST);
   options->dwSize = dwBufferSize;
   // NULL for LAN, connection name otherwise.
@@ -212,15 +215,16 @@ cleanup:
 
 int toggleProxy(bool turnOn)
 {
+  LOG_INFO("Begin toggleProxy, turning on? %s", turnOn ? "true" : "false");
   return doToggleProxy(turnOn);
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
   switch (message) {
     case WM_ENDSESSION:
-      LOG_INFO("Start WM_ENDSESSION");
+      LOG_INFO("Begin WM_ENDSESSION");
       doToggleProxy(false);
-      LOG_INFO("Stop WM_ENDSESSION");
+      LOG_INFO("End WM_ENDSESSION");
       break;
     default:
       return DefWindowProc(hWnd, message, wParam, lParam);

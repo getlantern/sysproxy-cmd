@@ -10,6 +10,7 @@ const char* proxyHost;
 const char* proxyPort;
 
 #ifdef _WIN32
+void initialize_event_log();
 void setupSystemShutdownHandler();
 #endif
 
