@@ -9,12 +9,13 @@
 LPCTSTR custom_log_name = "sysproxy-cmd";
 HANDLE event_log;
 
-void LOG_INFO(LPCTSTR message) {
-  ReportEvent(event_log, EVENTLOG_SUCCESS, 0, 0, NULL, 1, 0, &message, NULL);
-}
-
-void LOG_ERROR(LPCTSTR message) {
-  ReportEvent(event_log, EVENTLOG_ERROR_TYPE, 0, 0, NULL, 1, 0, &message, NULL);
+void LOG_INFO(LPCTSTR fmt, ...) {
+  char *buf = malloc(1024);
+  va_list args;
+  va_start(args, fmt);
+  vsnprintf(buf, 1024, fmt, args);
+  ReportEvent(event_log, EVENTLOG_SUCCESS, 0, 0, NULL, 1, 0, &buf, NULL);
+  va_end(args);
 }
 
 void reportWindowsError(const char* action, const char* connName) {
@@ -29,7 +30,7 @@ void reportWindowsError(const char* action, const char* connName) {
       pErrMsg,
       0,
       NULL);
-  LOG_ERROR(pErrMsg);
+  LOG_INFO(pErrMsg);
   if (NULL != connName) {
     fprintf(stderr, "Error %s for connection '%s': %lu %s\n",
         action, connName, errCode, pErrMsg);
@@ -147,7 +148,7 @@ int doToggleProxy(bool turnOn)
     return ret;
   }
 
-  LOG_INFO("Start doToggleProxy");
+  LOG_INFO("Begin doToggleProxy, turning on? %s", turnOn ? "true" : "false");
   char *proxy = malloc(256);
   snprintf(proxy, 256, "%s:%s", proxyHost, proxyPort);
 
@@ -204,7 +205,7 @@ turnOff:
 cleanup:
   free(options.pOptions);
   free(proxy);
-  LOG_INFO("Stop doToggleProxy");
+  LOG_INFO("End doToggleProxy, turning on? %s, ret = %d", turnOn ? "true" : "false", ret);
   return ret;
 }
 
@@ -239,7 +240,7 @@ void createInvisibleWindow()
 
   hwnd=CreateWindowEx(0,"SysproxyWindow","SysproxyWindow",WS_OVERLAPPEDWINDOW,CW_USEDEFAULT,CW_USEDEFAULT,CW_USEDEFAULT,CW_USEDEFAULT,(HWND) NULL, (HMENU) NULL, GetModuleHandle(NULL), (LPVOID) NULL);
   if(!hwnd) {
-    LOG_ERROR("FAILED to create window!!!");
+    LOG_INFO("FAILED to create window!!!");
     printf("FAILED to create window!!!  %Iu\n",GetLastError());
   }
 }
@@ -264,7 +265,7 @@ void setupSystemShutdownHandler()
   HANDLE hInvisiblethread=CreateThread(NULL, 0, runInvisibleWindowThread, NULL, 0, &tid);
   if (hInvisiblethread == NULL)
   {
-    LOG_ERROR("FAILED to create thread for invisible window!!!  ");
+    LOG_INFO("FAILED to create thread for invisible window!!!  ");
     printf("FAILED to create thread for invisible window!!!  %Iu\n",GetLastError());
   }
 }
