@@ -10,9 +10,11 @@ void reportWindowsError(const char* action, const char* connName) {
   LPTSTR pErrMsg = NULL;
   DWORD errCode = GetLastError();
   FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER|
+      FORMAT_MESSAGE_IGNORE_INSERTS |
+      FORMAT_MESSAGE_FROM_HMODULE|
       FORMAT_MESSAGE_FROM_SYSTEM|
       FORMAT_MESSAGE_ARGUMENT_ARRAY,
-      NULL,
+      GetModuleHandle(_T("wininet.dll")),
       errCode,
       LANG_NEUTRAL,
       pErrMsg,
