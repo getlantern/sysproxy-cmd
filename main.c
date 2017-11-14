@@ -1,3 +1,6 @@
+// Target Windows 7 and above.
+#define _WIN32_WINNT 0x0601
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>

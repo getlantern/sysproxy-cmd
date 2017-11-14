@@ -1,10 +1,14 @@
 #include <stdlib.h>
 #include <windows.h>
 #include <Wininet.h>
-#include <ras.h>
+#include "ras.h"
+#include "raserror.h"
 #include <tchar.h>
 #include <stdio.h>
 #include "common.h"
+
+#pragma comment(lib, "wininet.lib")
+#pragma comment(lib, "rasapi32.lib")
 
 void reportWindowsError(const char* action, const char* connName) {
   LPTSTR pErrMsg = NULL;
@@ -34,52 +38,50 @@ void reportWindowsError(const char* action, const char* connName) {
 // but works every time in Release mode.
 // TODO: we may want to find all active connections instead of the first one.
 LPTSTR findActiveConnection() {
-  DWORD dwCb = sizeof(RASCONN);
-  DWORD dwErr = ERROR_SUCCESS;
-  DWORD dwRetries = 5;
-  DWORD dwConnections = 0;
-  RASCONN* lpRasConn = NULL;
-  RASCONNSTATUS rasconnstatus;
-  rasconnstatus.dwSize = sizeof(RASCONNSTATUS);
 
-  // Loop through in case the information from RAS changes between calls.
-  while (dwRetries--) {
-    // If the memory is allocated, free it.
-    if (NULL != lpRasConn) {
-      HeapFree(GetProcessHeap(), 0, lpRasConn);
-      lpRasConn = NULL;
-    }
+	DWORD dwCb = 0;
+	DWORD dwRet = ERROR_SUCCESS;
+	DWORD dwConnections = 0;
+	LPRASCONN lpRasConn = NULL;
+	RASCONNSTATUS rasconnstatus;
+	rasconnstatus.dwSize = sizeof(RASCONNSTATUS);
 
-    // Allocate the size needed for the RAS structure.
-    lpRasConn = (RASCONN*)HeapAlloc(GetProcessHeap(), 0, dwCb);
-    if (NULL == lpRasConn) {
-      dwErr = ERROR_NOT_ENOUGH_MEMORY;
-      break;
-    }
+	// Call RasEnumConnections with lpRasConn = NULL. dwCb is returned with the required buffer size and 
+	// a return code of ERROR_BUFFER_TOO_SMALL
+	dwRet = RasEnumConnections(lpRasConn, &dwCb, &dwConnections);
 
-    // Set the structure size for version checking purposes.
-    lpRasConn->dwSize = sizeof(RASCONN);
+	// The following error is expected and is used to determine the required buffer size, as
+	// returned in dwCb. See https://msdn.microsoft.com/en-us/library/windows/desktop/aa377284(v=vs.85).aspx
+	if (dwRet == ERROR_BUFFER_TOO_SMALL) {
+		// Allocate the memory needed for the array of RAS structure(s).
+		lpRasConn = (LPRASCONN)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, dwCb);
+		if (lpRasConn == NULL) {
+			wprintf(L"HeapAlloc failed!\n");
+			return NULL;
+		}
+		// The first RASCONN structure in the array must contain the RASCONN structure size
+		lpRasConn[0].dwSize = sizeof(RASCONN);
 
-    // Call the RAS API then exit the loop if we are successful or an unknown
-    // error occurs.
-    dwErr = RasEnumConnections(lpRasConn, &dwCb, &dwConnections);
-    if (ERROR_INSUFFICIENT_BUFFER != dwErr) {
-      break;
-    }
-  }
+		// Call RasEnumConnections to enumerate active connections
+		dwRet = RasEnumConnections(lpRasConn, &dwCb, &dwConnections);
 
-  // In the success case, return the first active connection.
-  if (ERROR_SUCCESS == dwErr) {
-    DWORD i;
-    for (i = 0; i < dwConnections; i++) {
-      RasGetConnectStatus(lpRasConn[i].hrasconn, &rasconnstatus);
-      if (rasconnstatus.rasconnstate == RASCS_Connected){
-        return lpRasConn[i].szEntryName;
-      }
+		// If successful, print the names of the active connections.
+		if (ERROR_SUCCESS == dwRet) {
+			DWORD i;
+			for (i = 0; i < dwConnections; i++) {
+				RasGetConnectStatus(lpRasConn[i].hrasconn, &rasconnstatus);
+				if (rasconnstatus.rasconnstate == RASCS_Connected) {
+					return lpRasConn[i].szEntryName;
+				}
+			}
+		}
+		//Deallocate memory for the connection buffer
+		HeapFree(GetProcessHeap(), 0, lpRasConn);
+		lpRasConn = NULL;
+		return NULL;
+	}
 
-    }
-  }
-  return NULL; // Couldn't find an active dial-up/VPN connection; return NULL
+	return NULL;
 }
 
 int initialize(INTERNET_PER_CONN_OPTION_LIST* options) {
@@ -137,12 +139,16 @@ int doToggleProxy(bool turnOn)
   }
 
   char *proxy = malloc(256);
-  snprintf(proxy, 256, "%s:%s", proxyHost, proxyPort);
+  if (proxy == NULL) {
+	printf("Insufficient memory available\n");
+	return NO_MEMORY;
+  }
+  
+  _snprintf_s(proxy, sizeof(proxy), _TRUNCATE, "%s:%s", proxyHost, proxyPort);
 
   if (turnOn) {
     options.pOptions[0].Value.dwValue = PROXY_TYPE_DIRECT | PROXY_TYPE_PROXY;
     options.pOptions[1].Value.pszValue = proxy;
-    options.pOptions[2].Value.pszValue = TEXT("<local>");
   }
   else {
     if (strlen(proxyHost) == 0) {
