@@ -1,5 +1,8 @@
 #include <errno.h>
-#include <stdbool.h>
+
+typedef int bool;
+#define false 0
+#define true 1
 
 #ifdef DARWIN
 int setUid();

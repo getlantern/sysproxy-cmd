@@ -1,3 +1,4 @@
+#include "targetver.h"
 #include <stdlib.h>
 #include <windows.h>
 #include <Wininet.h>
