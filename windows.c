@@ -7,6 +7,7 @@
 #include <tchar.h>
 #include <stdio.h>
 #include "common.h"
+#include <string>
 
 #pragma comment(lib, "wininet.lib")
 #pragma comment(lib, "rasapi32.lib")
@@ -93,8 +94,8 @@ int initialize(INTERNET_PER_CONN_OPTION_LIST* options) {
 
   options->dwOptionCount = 3;
   options->dwOptionError = 0;
-  options->pOptions = (INTERNET_PER_CONN_OPTION*)calloc(3, sizeof(INTERNET_PER_CONN_OPTION));
-  if(NULL == options->pOptions) {
+  options->pOptions = new INTERNET_PER_CONN_OPTION[3];
+  if(!options->pOptions) {
     return NO_MEMORY;
   }
   options->pOptions[0].dwOption = INTERNET_PER_CONN_FLAGS;
@@ -131,7 +132,7 @@ int show()
   return ret;
 }
 
-int doToggleProxy(bool turnOn)
+int toggleProxy(bool turnOn, const char *host, const char *port)
 {
   INTERNET_PER_CONN_OPTION_LIST options;
   int ret = initialize(&options);
@@ -139,20 +140,18 @@ int doToggleProxy(bool turnOn)
     return ret;
   }
 
-  char *proxy = malloc(256);
-  if (proxy == NULL) {
-	printf("Insufficient memory available\n");
-	return NO_MEMORY;
-  }
-  
-  _snprintf_s(proxy, sizeof(proxy), _TRUNCATE, "%s:%s", proxyHost, proxyPort);
+  std::string ph = std::string(host);
+  std::string pp = std::string(port);
+  std::string proxyStr = ph + ":" + pp;
+ 
+  LPSTR proxy = _strdup(proxyStr.c_str());
 
   if (turnOn) {
     options.pOptions[0].Value.dwValue = PROXY_TYPE_DIRECT | PROXY_TYPE_PROXY;
     options.pOptions[1].Value.pszValue = proxy;
   }
   else {
-    if (strlen(proxyHost) == 0) {
+    if (strlen(host) == 0) {
       goto turnOff;
     }
     ret = query(&options);
@@ -197,21 +196,16 @@ turnOff:
   }
 
 cleanup:
-  free(options.pOptions);
-  free(proxy);
+  delete[] options.pOptions;
+  delete proxy;
   return ret;
-}
-
-int toggleProxy(bool turnOn)
-{
-  return doToggleProxy(turnOn);
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
 	switch (message) {
 		case WM_ENDSESSION:
 			printf("Session ending\n");
-			doToggleProxy(false);
+			toggleProxy(false, "", "");
 			break;
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);

@@ -12,7 +12,7 @@ void usage(const char* binName)
 
 void turnOffProxyOnSignal(int signal)
 {
-  toggleProxy(false);
+  toggleProxy(false, "", "");
   exit(0);
 }
 
@@ -45,12 +45,10 @@ int main(int argc, char* argv[]) {
     if (argc < 4) {
       usage(argv[0]);
     }
-    proxyHost = argv[2];
-    proxyPort = argv[3];
     if (strcmp(argv[1], "on") == 0) {
-      return toggleProxy(true);
+      return toggleProxy(true, argv[2], argv[3]);
     } else if (strcmp(argv[1], "off") == 0) {
-      return toggleProxy(false);
+      return toggleProxy(false, argv[2], argv[3]);
     } else if (strcmp(argv[1], "wait-and-cleanup") == 0) {
       setupSignals();
 #ifdef _WIN32
@@ -58,7 +56,7 @@ int main(int argc, char* argv[]) {
 #endif
       // wait for input from stdin (or close), then toggle off
       getchar();
-      return toggleProxy(false);
+      return toggleProxy(false, argv[2], argv[3]);
     } else {
       usage(argv[0]);
     }
