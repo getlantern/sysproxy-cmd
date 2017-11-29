@@ -195,15 +195,30 @@ cleanup:
   return ret;
 }
 
+HWND hWnd = NULL;
+HANDLE hInvisibleThread = NULL;
+
 int toggleProxy(bool turnOn)
 {
-  return doToggleProxy(turnOn);
+  if (hInvisibleThread == NULL) {
+    return doToggleProxy(turnOn);
+  }
+
+  // in this case, we're running in wait-and-cleanup mode, close the Window and
+  // let that trigger the toggling on the event loop thread.
+  PostMessage(hWnd, WM_CLOSE, 0, 0);
+  WaitForSingleObject(hInvisibleThread, INFINITE);
+  DWORD exitCode = 0;
+  GetExitCodeThread(hInvisibleThread, &exitCode);
+  return exitCode;
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
 	switch (message) {
+    case WM_DESTROY:
+      PostQuitMessage(doToggleProxy(false));
+      break;
 		case WM_ENDSESSION:
-			printf("Session ending\n");
 			doToggleProxy(false);
 			break;
 		default:
@@ -215,7 +230,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
 // courtesy of https://social.msdn.microsoft.com/Forums/windowsdesktop/en-US/abf09824-4e4c-4f2c-ae1e-5981f06c9c6e/windows-7-console-application-has-no-way-of-trapping-logoffshutdown-event?forum=windowscompatibility
 void createInvisibleWindow()
 {
-  HWND hwnd;
   WNDCLASS wc={0};
   wc.lpfnWndProc=(WNDPROC)WndProc;
   wc.hInstance=GetModuleHandle(NULL);
@@ -223,8 +237,8 @@ void createInvisibleWindow()
   wc.lpszClassName="SysproxyWindow";
   RegisterClass(&wc);
 
-  hwnd=CreateWindowEx(0,"SysproxyWindow","SysproxyWindow",WS_OVERLAPPEDWINDOW,CW_USEDEFAULT,CW_USEDEFAULT,CW_USEDEFAULT,CW_USEDEFAULT,(HWND) NULL, (HMENU) NULL, GetModuleHandle(NULL), (LPVOID) NULL);
-  if(!hwnd)
+  hWnd=CreateWindowEx(0,"SysproxyWindow","SysproxyWindow",WS_OVERLAPPEDWINDOW,CW_USEDEFAULT,CW_USEDEFAULT,CW_USEDEFAULT,CW_USEDEFAULT,(HWND) NULL, (HMENU) NULL, GetModuleHandle(NULL), (LPVOID) NULL);
+  if(!hWnd)
     printf("FAILED to create window!!!  %Iu\n",GetLastError());
 }
 
@@ -245,9 +259,20 @@ void setupSystemShutdownHandler()
   // Create an invisible window so that we can respond to system shutdown and
   // make sure that we finish setting the system proxy to off.
   DWORD tid;
-  HANDLE hInvisiblethread=CreateThread(NULL, 0, runInvisibleWindowThread, NULL, 0, &tid);
-  if (hInvisiblethread == NULL)
+  hInvisibleThread=CreateThread(NULL, 0, runInvisibleWindowThread, NULL, 0, &tid);
+  if (hInvisibleThread == NULL)
   {
     printf("FAILED to create thread for invisible window!!!  %Iu\n",GetLastError());
+  }
+
+  // Make this process shut down very early so that in system logoff case, we
+  // successfully disable system proxy before parent process tries to do so and
+  // fails, and also do it early enough that required system services have not
+  // yet shut down.
+  //
+  // See https://stackoverflow.com/questions/8760509/graceful-application-shutdown-when-windows-shuts-down
+  BOOL fOkay = SetProcessShutdownParameters(0x3FF, SHUTDOWN_NORETRY);
+  if (!fOkay) {
+    printf("Failed to prioritize sysproxy-cmd for shutdown\n");
   }
 }
