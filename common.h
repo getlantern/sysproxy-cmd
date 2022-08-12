@@ -1,5 +1,3 @@
-#pragma once
-
 #include <errno.h>
 #ifndef _WIN32
 #include <stdbool.h>
@@ -14,7 +12,7 @@ int elevate(char *path, char *prompt, char *iconPath);
 void setupSystemShutdownHandler();
 #endif
 
-int show();
+int show(void);
 int toggleProxy(bool turnOn, const char *host, const char *port);
 
 enum RET_ERRORS {

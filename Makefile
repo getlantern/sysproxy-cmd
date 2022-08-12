@@ -5,6 +5,7 @@ CCFLAGS = -Wall -c
 
 ifeq ($(OS),Windows_NT)
 	os = windows
+	osFile = windows.c
 	CCFLAGS += -D WIN32
 	# 32 bit `make` utility over 64 bit OS
 	ifeq ($(PROCESSOR_ARCHITEW6432),AMD64)
@@ -25,6 +26,7 @@ else
 	UNAME_S := $(shell uname -s)
 	ifeq ($(UNAME_S),Linux)
 		os = linux
+		osFile = linux.c
 		CCFLAGS += -D LINUX $(shell pkg-config --cflags gio-2.0)
 		LDFLAGS += $(shell pkg-config --libs gio-2.0)
 		UNAME_P := $(shell uname -p)
@@ -43,6 +45,7 @@ else
 	endif
 	ifeq ($(UNAME_S),Darwin)
 		os = darwin
+		osFile = darwin.mm
 		CCFLAGS += -D DARWIN -D AMD64 -x objective-c
 		LDFLAGS += -framework Cocoa -framework SystemConfiguration -framework Security
 		BIN = binaries/darwin/sysproxy
@@ -54,7 +57,7 @@ CC=gcc
 all: $(BIN)
 main.o: main.c common.h
 	$(CC) $(CCFLAGS) $^
-$(os).o: $(os).c common.h
+$(os).o: $(osFile) common.h
 	$(CC) $(CCFLAGS) $^
 $(BIN): $(os).o main.o
 	$(CC) -o $@ $^ $(LDFLAGS)

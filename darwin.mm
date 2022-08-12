@@ -1,3 +1,4 @@
+#import "common.h"
 #import <Foundation/NSArray.h>
 #import <Foundation/Foundation.h>
 #import <SystemConfiguration/SCPreferences.h>
@@ -6,13 +7,12 @@
 #include <sys/syslimits.h>
 #include <sys/stat.h>
 #include <mach-o/dyld.h>
-#include "common.h"
 
 /* === implement details === */
 
-typedef Boolean (*visitor) (SCNetworkProtocolRef proxyProtocolRef, NSDictionary* oldPreferences, bool turnOn);
+typedef Boolean (*visitor) (SCNetworkProtocolRef proxyProtocolRef, NSDictionary* oldPreferences, bool turnOn, const char* host, const char* port);
 
-Boolean showAction(SCNetworkProtocolRef proxyProtocolRef /*unused*/, NSDictionary* oldPreferences, bool turnOn /*unused*/)
+Boolean showAction(SCNetworkProtocolRef proxyProtocolRef /*unused*/, NSDictionary* oldPreferences, bool turnOn /*unused*/, const char* host, const char* port)
 {
   NSNumber* on = [oldPreferences valueForKey:(NSString*)kSCPropNetProxiesHTTPEnable];
   NSString* nsOldProxyHost = [oldPreferences valueForKey:(NSString*)kSCPropNetProxiesHTTPProxy];
@@ -23,7 +23,8 @@ Boolean showAction(SCNetworkProtocolRef proxyProtocolRef /*unused*/, NSDictionar
   return TRUE;
 }
 
-Boolean toggleAction(SCNetworkProtocolRef proxyProtocolRef, NSDictionary* oldPreferences, bool turnOn)
+Boolean toggleAction(SCNetworkProtocolRef proxyProtocolRef, NSDictionary* oldPreferences, bool turnOn,
+                     const char* proxyHost, const char* proxyPort)
 {
   NSString* nsProxyHost = [[NSString alloc] initWithCString: proxyHost encoding:NSUTF8StringEncoding];
   NSNumber* nsProxyPort = [[NSNumber alloc] initWithLong: [[[NSString alloc] initWithCString: proxyPort encoding:NSUTF8StringEncoding] integerValue]];
@@ -63,16 +64,16 @@ Boolean toggleAction(SCNetworkProtocolRef proxyProtocolRef, NSDictionary* oldPre
   return success;
 }
 
-int visit(visitor v, bool persist, bool turnOn)
+int visit(visitor v, bool persist, bool turnOn, const char* host, const char* port)
 {
   int ret = RET_NO_ERROR;
   Boolean success;
 
   SCNetworkSetRef networkSetRef;
   CFArrayRef networkServicesArrayRef;
-  SCNetworkServiceRef networkServiceRef;
   SCNetworkProtocolRef proxyProtocolRef;
   NSDictionary *oldPreferences;
+  //SCNetworkServiceRef networkServiceRef;
 
   // Get System Preferences Lock
   SCPreferencesRef prefsRef = SCPreferencesCreate(NULL, CFSTR("org.getlantern.lantern"), NULL);
@@ -80,14 +81,14 @@ int visit(visitor v, bool persist, bool turnOn)
   if(prefsRef==NULL) {
     NSLog(@"Fail to obtain Preferences Ref");
     ret = NO_PERMISSION;
-    goto freePrefsRef;
+    //goto freePrefsRef;
   }
 
   success = SCPreferencesLock(prefsRef, true);
   if (!success) {
     NSLog(@"Fail to obtain PreferencesLock");
     ret = NO_PERMISSION;
-    goto freePrefsRef;
+    //goto freePrefsRef;
   }
 
   // Get available network services
@@ -95,15 +96,12 @@ int visit(visitor v, bool persist, bool turnOn)
   if(networkSetRef == NULL) {
     NSLog(@"Fail to get available network services");
     ret = SYSCALL_FAILED;
-    goto freeNetworkSetRef;
+    //goto freeNetworkSetRef;
   }
-
-  //Look up interface entry
-  networkServicesArrayRef = SCNetworkSetCopyServices(networkSetRef);
-  networkServiceRef = NULL;
-  for (long i = 0; i < CFArrayGetCount(networkServicesArrayRef); i++) {
-    networkServiceRef = CFArrayGetValueAtIndex(networkServicesArrayRef, i);
-
+    
+  NSArray *services = CFBridgingRelease(SCNetworkSetCopyServices(networkSetRef));
+  for (id networkService in services) {
+    SCNetworkServiceRef networkServiceRef = (__bridge SCNetworkServiceRef)(networkService);
     // Get proxy protocol
     proxyProtocolRef = SCNetworkServiceCopyProtocol(networkServiceRef, kSCNetworkProtocolTypeProxies);
     if(proxyProtocolRef == NULL) {
@@ -111,16 +109,39 @@ int visit(visitor v, bool persist, bool turnOn)
       ret = SYSCALL_FAILED;
       goto freeProxyProtocolRef;
     }
-
+    
     oldPreferences = (__bridge NSDictionary*)SCNetworkProtocolGetConfiguration(proxyProtocolRef);
-    if (!v(proxyProtocolRef, oldPreferences, turnOn)) {
+    if (!v(proxyProtocolRef, oldPreferences, turnOn, host, port)) {
       ret = SYSCALL_FAILED;
     }
-
+    
 freeProxyProtocolRef:
     CFRelease(proxyProtocolRef);
   }
-
+     /*
+    //Look up interface entry
+    networkServicesArrayRef = SCNetworkSetCopyServices(networkSetRef);
+    networkServiceRef = NULL;
+    for (long i = 0; i < CFArrayGetCount(networkServicesArrayRef); i++) {
+        networkServiceRef = CFArrayGetValueAtIndex(networkServicesArrayRef, i);
+        
+        // Get proxy protocol
+        proxyProtocolRef = SCNetworkServiceCopyProtocol(networkServiceRef, kSCNetworkProtocolTypeProxies);
+        if(proxyProtocolRef == NULL) {
+            NSLog(@"Couldn't acquire copy of proxyProtocol");
+            ret = SYSCALL_FAILED;
+            goto freeProxyProtocolRef;
+        }
+        
+        oldPreferences = (__bridge NSDictionary*)SCNetworkProtocolGetConfiguration(proxyProtocolRef);
+        if (!v(proxyProtocolRef, oldPreferences, turnOn, host, port)) {
+            ret = SYSCALL_FAILED;
+        }
+        
+    freeProxyProtocolRef:
+        CFRelease(proxyProtocolRef);
+    }
+      */
   if (persist) {
     success = SCPreferencesCommitChanges(prefsRef);
     if(!success) {
@@ -145,7 +166,6 @@ freeNetworkSetRef:
 freePrefsRef:
   SCPreferencesUnlock(prefsRef);
   CFRelease(prefsRef);
-
   return ret;
 }
 
@@ -172,12 +192,12 @@ int setUid()
   return RET_NO_ERROR;
 }
 
-int show()
+int show(void)
 {
-  return visit(&showAction, false, false /*unused*/);
+  return visit(&showAction, false, false, "", "");
 }
 
-int toggleProxy(bool turnOn)
+int toggleProxy(bool turnOn, const char* host, const char* port)
 {
-  return visit(&toggleAction, true, turnOn);
+  return visit(&toggleAction, true, turnOn, host, port);
 }
