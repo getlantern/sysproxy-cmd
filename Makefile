@@ -41,12 +41,6 @@ else
 			BIN = binaries/linux_arm/sysproxy
 		endif
 	endif
-	ifeq ($(UNAME_S),Darwin)
-		os = darwin
-		CCFLAGS += -D DARWIN -D AMD64 -x objective-c
-		LDFLAGS += -framework Cocoa -framework SystemConfiguration -framework Security
-		BIN = binaries/darwin/sysproxy
-	endif
 endif
 
 CC=gcc

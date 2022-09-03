@@ -2,7 +2,7 @@
 
 A command line tool to change HTTP(s) proxy settings of the operating system.
 
-Binaries included in repo. Simply `make` to build it again.
+Binaries included in repo. Simply `make` to build it again, with the important exception of darwin, which uses its own repository and build at https://github.com/getlantern/sysproxy-cmd-darwin.
 
 Note - you will need to run make separately on each platform.
 
