@@ -4,6 +4,10 @@
 #include <signal.h>
 #include "common.h"
 
+
+const char* proxyHost;
+const char* proxyPort;
+
 void usage(const char* binName)
 {
   printf("Usage: %s [show | on | off | wait-and-cleanup <proxy host> <proxy port>]\n", binName);

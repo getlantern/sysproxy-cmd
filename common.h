@@ -6,8 +6,8 @@ int setUid();
 int elevate(char *path, char *prompt, char *iconPath);
 #endif
 
-const char* proxyHost;
-const char* proxyPort;
+extern const char* proxyHost;
+extern const char* proxyPort;
 
 #ifdef _WIN32
 void setupSystemShutdownHandler();
