@@ -11,18 +11,13 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Install Chocolatey
-      run: |
-        Set-ExecutionPolicy Bypass -Scope Process -Force;
-        [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072;
-        Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
-
     - name: Install MinGW
       run: choco install -y mingw
 
     - name: Build
       shell: bash
       run: |
+        rm -rf binaries/windows/sysproxy*
         make
 
     - name: Sign sysproxy binary with Azure Code Signing
@@ -43,7 +38,7 @@ jobs:
     - name: Upload sysproxy binaries
       uses: actions/upload-artifact@v4
       with:
-          name: windows-dlls
+          name: windows-binaries
           if-no-files-found: error
           path: |
-            binaries/windows/sysproxy_arm64
+            binaries/windows/sysproxy_amd64.exe
