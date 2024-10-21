@@ -42,6 +42,8 @@ endif
 
 CC=gcc
 
+.PHONY: all clean
+
 all: $(BIN)
 main.o: main.c common.h
 	$(CC) $(CCFLAGS) $^
