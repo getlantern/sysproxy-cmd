@@ -7,7 +7,7 @@ ifeq ($(OS),Windows_NT)
 	os = windows
 	CCFLAGS += -D WIN32
 	# 32 bit `make` utility over 64 bit OS
-	ifeq ($(PROCESSOR_ARCHITEW6432),AMD64)
+	ifeq ($(PROCESSOR_ARCHITECTURE),AMD64)
 		CCFLAGS += -D AMD64
 		BIN = binaries/windows/sysproxy_amd64
 	else ifeq ($(PROCESSOR_ARCHITECTURE),x86)
@@ -43,10 +43,6 @@ endif
 CC=gcc
 
 .PHONY: all clean
-
-$(info BIN is $(BIN))
-$(info os is $(OS))
-$(info arch is $(PROCESSOR_ARCHITECTURE))
 
 all: $(BIN)
 main.o: main.c common.h
