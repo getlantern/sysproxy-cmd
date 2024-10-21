@@ -45,6 +45,7 @@ CC=gcc
 .PHONY: all clean
 
 $(info BIN is $(BIN))
+$(info arch is $(PROCESSOR_ARCHITECTURE))
 
 all: $(BIN)
 main.o: main.c common.h
