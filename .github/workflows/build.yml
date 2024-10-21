@@ -15,7 +15,7 @@ jobs:
       shell: bash
       run: |
         rm -rf binaries/windows
-        make
+        make all
 
     - name: Sign sysproxy binary with Azure Code Signing
       uses: getlantern/trusted-signing-action@main
