@@ -44,6 +44,8 @@ CC=gcc
 
 .PHONY: all clean
 
+$(info BIN is $(BIN))
+
 all: $(BIN)
 main.o: main.c common.h
 	$(CC) $(CCFLAGS) $^
