@@ -10,15 +10,12 @@ ifeq ($(OS),Windows_NT)
 	ifeq ($(PROCESSOR_ARCHITEW6432),AMD64)
 		CCFLAGS += -D AMD64
 		BIN = binaries/windows/sysproxy_amd64
-	else
-		ifeq ($(PROCESSOR_ARCHITECTURE),AMD64)
-			CCFLAGS += -D AMD64
-			BIN = binaries/windows/sysproxy_amd64
-		endif
-		ifeq ($(PROCESSOR_ARCHITECTURE),x86)
-			CCFLAGS += -D IA32
-			BIN = binaries/windows/sysproxy_386
-		endif
+	else ifeq ($(PROCESSOR_ARCHITECTURE),x86)
+		CCFLAGS += -D IA32
+		BIN = binaries/windows/sysproxy_386
+	else ifeq ($(PROCESSOR_ARCHITECTURE),ARM64)
+		CCFLAGS += -D ARM64
+		BIN = binaries/windows/sysproxy_arm64
 	endif
 	LDFLAGS += -l rasapi32 -l wininet -Wl,--subsystem,windows
 else
