@@ -1,0 +1,28 @@
+name: Build sysproxy
+
+on:
+  push:
+    branches: [ "atavism/windows-arm64" ]
+
+jobs:
+
+  build:
+    runs-on: windows-arm64
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version-file: "go.mod"
+
+    - name: Build
+      run: make
+
+    - name: Upload sysproxy binaries
+      uses: actions/upload-artifact@v4
+      with:
+        name: windows-dlls
+        if-no-files-found: error
+        path: |
+          binaries/windows/sysproxy_arm64
