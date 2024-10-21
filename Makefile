@@ -45,6 +45,7 @@ CC=gcc
 .PHONY: all clean
 
 $(info BIN is $(BIN))
+$(info os is $(OS))
 $(info arch is $(PROCESSOR_ARCHITECTURE))
 
 all: $(BIN)
