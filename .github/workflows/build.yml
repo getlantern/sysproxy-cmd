@@ -12,7 +12,9 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Build
-      run: make
+      run: |
+        rm -rf binaries/windows
+        make
 
     - name: Sign sysproxy binary with Azure Code Signing
       uses: getlantern/trusted-signing-action@main
