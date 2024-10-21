@@ -7,7 +7,7 @@ on:
 jobs:
 
   build:
-    runs-on: windows-arm64
+    runs-on: windows-latest
     steps:
     - uses: actions/checkout@v4
 
@@ -19,10 +19,25 @@ jobs:
     - name: Build
       run: make
 
+    - name: Sign sysproxy binary with Azure Code Signing
+      uses: getlantern/trusted-signing-action@main
+      with:
+        azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+        endpoint: https://wus2.codesigning.azure.net/
+        code-signing-account-name: code-signing
+        certificate-profile-name: Lantern
+        files-folder: binaries/windows
+        files-folder-filter: exe
+        file-digest: SHA256
+        timestamp-rfc3161: http://timestamp.acs.microsoft.com
+        timestamp-digest: SHA256
+
     - name: Upload sysproxy binaries
       uses: actions/upload-artifact@v4
       with:
-        name: windows-dlls
-        if-no-files-found: error
-        path: |
-          binaries/windows/sysproxy_arm64
+          name: windows-dlls
+          if-no-files-found: error
+          path: |
+            binaries/windows/sysproxy_arm64
