@@ -41,4 +41,4 @@ jobs:
           name: windows-binaries
           if-no-files-found: error
           path: |
-            binaries/windows/sysproxy_amd64.exe
+            binaries/windows/sysproxy_arm64.exe
